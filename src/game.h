@@ -57,8 +57,11 @@ typedef struct {
     int vx;
 } Shot;
 
-typedef struct { int y, x; } Bullet;        /* free when y < 0x21 */
-typedef struct { int y, x, vx; } Missile;   /* free when y < -0xf; vx steers */
+/* The weapon slots.  The stage types disagree about which way things travel
+ * and which value in `y` means the slot is free, so each of src/stage_*.c
+ * says so for itself; the extra fields are the ones only some of them use. */
+typedef struct { int y, x, v; } Bullet;
+typedef struct { int y, x, vx, vy; } Missile;
 
 typedef struct {
     int kind;             /* DS:0x17f6 */
@@ -80,7 +83,9 @@ typedef enum {
     GS_OVER          /* FUN_1000_a29e; the original goes to the name entry here */
 } GameState;
 
-typedef struct {
+typedef struct Stage Stage;
+
+typedef struct Game {
     Screen *scr;
     const PatBank *bank;
     Snd *snd;              /* optional; nothing here needs it to be there */
@@ -126,6 +131,10 @@ typedef struct {
     Shot shot[MAX_SHOT];
     Bullet bullet[MAX_BULLET];
     Missile missile[MAX_MISSILE];
+
+    const Stage *stage_ops;   /* which of src/stage_*.c is running */
+    int ent_off;              /* the y an entity has while off the field:
+                               * 0 in SEA, -0x20 where they come in from above */
 
     unsigned pad;
     unsigned rnd;

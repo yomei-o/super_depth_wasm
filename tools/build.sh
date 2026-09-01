@@ -4,6 +4,6 @@
 set -e
 cd "$(dirname "$0")/.."
 sh tools/cc.sh -O2 -Wall -Wextra -mwindows -Isrc \
-   -o depth.exe src/main_win32.c src/game.c src/video.c src/text.c src/bfnt.c src/sound.c \
+   -o depth.exe src/main_win32.c src/game.c src/stage_sea.c src/stage_sky.c src/video.c src/text.c src/bfnt.c src/sound.c \
    -lgdi32 -luser32 -lwinmm
 echo "built depth.exe"
