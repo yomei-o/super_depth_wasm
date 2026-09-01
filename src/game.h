@@ -149,6 +149,7 @@ typedef struct Game {
 
     /* Which of the between-stage animations is running, and how far in. */
     int cut_kind, cut_step;
+    int record_score;     /* the ranking screen is showing the run's score */
     int died;             /* local_4e; set when the last life ran out this stage */
 
     /* The item, DS:0x1dc0 / 0x193e / 0x1d40 / 0x1db2 / 0x1db4 / 0x1d44.
@@ -201,6 +202,7 @@ void title_tick(Game *g);
  * record_load reads DEPTH.SCR; without it the table shows its empty rows. */
 int  record_load(Game *g, const char *path);
 void record_start(Game *g);
+void record_start_score(Game *g);
 void record_tick(Game *g);
 
 /* What plays between the stages (src/cut.c): 1 = SEA to SKY, 2 = SKY to

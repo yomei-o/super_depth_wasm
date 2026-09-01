@@ -13,9 +13,11 @@
  * Like the title screen, this was read with tools/disasm.py: Ghidra loses the
  * arguments to every one of the drawing calls.
  *
- * Writing a new entry back is not here.  That is the name entry
- * (FUN_1000_a46c / _ab76) reached from FUN_1000_aa92 after a game over, and it
- * is not written yet, so the file is only ever read.
+ * FUN_1000_aa92 is what a game over runs.  It compares the score against tenth
+ * place (DS:0x20b0): a lower one just shows this table with "Your score is ...
+ * pts." under it, and a higher one goes to the name entry (FUN_1000_a46c and
+ * _ab76) instead.  The name entry is not written, so a score that would have
+ * made the table is shown the same screen and nothing is recorded.
  */
 #include "gameint.h"
 #include "pal.h"
@@ -129,12 +131,22 @@ static void draw_table(Game *g)
         txt_puts(&g->txt, row, 0x24, 0xe1, g->rank[i].name);
         txt_puts(&g->txt, row, 0x36, 0xe1, g->rank[i].date);
     }
-    /* FUN_1000_aa44's line under the table. */
-    txt_puts(&g->txt, 0x14, 0x12, 0xc3, "Hit any key to return.");
+    if (g->record_score) {
+        /* FUN_1000_aa92's line, with the score in the same place. */
+        char six[8];
+
+        txt_puts(&g->txt, 0x14, 0x10, 0xc1, "Your score is        pts.");
+        sprintf(six, "%06ld", g->score);
+        txt_puts(&g->txt, 0x14, 0x2c, 0xe1, six);
+    } else {
+        /* FUN_1000_aa44's line, when the title's Record opened this. */
+        txt_puts(&g->txt, 0x14, 0x12, 0xc3, "Hit any key to return.");
+    }
 }
 
 void record_start(Game *g)
 {
+    g->record_score = 0;
     g->state = GS_RECORD;
     g->menu_trig = 0;               /* the button that got here is still down */
     txt_clear(&g->txt);
@@ -143,6 +155,16 @@ void record_start(Game *g)
     g->fade_step = 0;
     g->fade_ticks = 0;
     scr_palette_fade(g->scr, g->pal, 0);
+}
+
+/* The same screen with the game's score under it, which is where a game over
+ * lands. */
+void record_start_score(Game *g)
+{
+    record_start(g);
+    g->record_score = 1;
+    txt_clear(&g->txt);
+    draw_table(g);
 }
 
 void record_tick(Game *g)

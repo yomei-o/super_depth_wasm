@@ -665,11 +665,11 @@ void game_tick(Game *g)
         return;
     case GS_OVER:
         draw_all(g);
-        /* The original goes to the name entry and the ranking (FUN_1000_aa92)
-         * and then back to the title; the name entry is not written, so a
-         * button goes straight back to the title. */
+        /* FUN_1000_aa92: the ranking, with this run's score under it.  A
+         * score good enough for the table would go to the name entry first,
+         * which is not written. */
         if (g->pad & (PAD_A | PAD_B))
-            title_start(g);
+            record_start_score(g);
         return;
     case GS_PLAY:
         break;
