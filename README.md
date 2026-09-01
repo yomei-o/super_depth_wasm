@@ -29,7 +29,7 @@ PC-98 のテキストプレーンによる HUD（スコア・残機・枠・レ�
 | 3 SPACE | 宇宙。自機は上下に動いて左右へ撃つ。左右キーで世界のほうが流れる |
 | 4 BOSS | ボス 3 体（ステージ 4 / 8 / 12）。弱点に 20 発で倒せる |
 
-まだ無いもの: タイトルの Record（ランキング）と Exit、ネーム入力、
+まだ無いもの: ネーム入力（ランキングへの書き込み）、Exit、
 面と面のあいだの演出。
 
 ```
@@ -101,6 +101,7 @@ Programming : alty
 | `src/game.c` `src/game.h` `src/gameint.h` | 面の種別に共通な部分とフレームの骨格 |
 | `src/stage_sea.c` `src/stage_sky.c` `src/stage_space.c` `src/stage_boss.c` | 面 1 本ずつ |
 | `src/title.c` | タイトル画面（ロゴは `DEPTH.FNT` の外字） |
+| `src/record.c` | ランキング画面（`DEPTH.SCR` を読む） |
 | `src/main_win32.c` | ネイティブ（8bpp DIB） |
 | `src/main_wasm.c` | Emscripten（`putImageData` のみ、WebGL 不使用） |
 
@@ -147,6 +148,7 @@ python tools/bfnt.py orig/DEPTH.C32 tmp/c32.png --zoom 2 --cols 8
 `tests/frames.exe` が書き出したそのままのものです。
 
 ![title](docs/screen_title.png)
+![record](docs/screen_record.png)
 
 ![SEA](docs/screen_stage1.png)
 ![SEA](docs/screen_stage1_b.png)
@@ -236,7 +238,8 @@ WinDepth には無いパワーアップが一通りあります。
 11. ~~種別 2 (SKY) と 3 (SPACE)~~ 済
 12. ~~種別 4（ボス面）~~ 済 — ボス 3 体
 13. ~~タイトル画面~~ 済 — `src/title.c`
-14. Record（ランキング）とネーム入力、面と面のあいだの演出
+14. ~~Record（ランキング）~~ 済 — `src/record.c`
+15. ネーム入力（ランキングへの書き込み）、面と面のあいだの演出
 
 **具体的な次の手順・判明しているアドレス・踏んだ罠は
 [RESUME.md](RESUME.md) の冒頭「引き継ぎ」にまとめてあります。**

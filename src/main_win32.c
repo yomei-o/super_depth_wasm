@@ -261,6 +261,12 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show)
     game_init(&g_game, &g_scr, &g_bank, &g_font,
               base[0], base[1], base[2], base[3]);
     {
+        char scr[MAX_PATH];
+
+        sprintf(scr, "%s\\DEPTH.SCR", g_dir);
+        record_load(&g_game, scr);
+    }
+    {
         char bgm[MAX_PATH], efs[MAX_PATH];
 
         sprintf(bgm, "%s\\DEPTH.BGM", g_dir);

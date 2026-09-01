@@ -66,6 +66,15 @@ typedef struct {
 typedef struct { int y, x, v; } Bullet;
 typedef struct { int y, x, vx, vy, t; } Missile;   /* t: BOSS homes while it lasts */
 
+/* One line of DEPTH.SCR, which the game reads and writes as fixed-width text.
+ * The original keeps them at DS:0x1fea, on top of the entity arrays. */
+#define RANK_ROWS 10
+typedef struct {
+    long score;
+    int stage;
+    char name[9], date[9];
+} Rank;
+
 /* SPACE's starfield: 70 of them in three parallax layers, scrolled by the
  * ship's horizontal speed. */
 #define MAX_STAR 70
@@ -86,6 +95,7 @@ typedef struct {
  * port has to make those states instead. */
 typedef enum {
     GS_TITLE,        /* FUN_1000_8ae2, src/title.c */
+    GS_RECORD,       /* FUN_1000_a816, src/record.c */
     GS_FADE_IN,      /* FUN_1000_82d7(0x2b8), 16 steps of 2 VSYNC ticks */
     GS_PLAY,
     GS_FLASH_UP,     /* FUN_1000_83b5(0x2b8), the flush bomb going off */
@@ -152,6 +162,7 @@ typedef struct Game {
     unsigned char pal[16][3];
 
     Star star[MAX_STAR];
+    Rank rank[RANK_ROWS];
 
     Ent ent[MAX_ENT];
     Shot shot[MAX_SHOT];
@@ -181,6 +192,12 @@ void game_sound(Game *g, Snd *snd);
  * calls game_stage_start. */
 void title_start(Game *g);
 void title_tick(Game *g);
+
+/* The ranking screen (src/record.c), which the title's "Record" opens.
+ * record_load reads DEPTH.SCR; without it the table shows its empty rows. */
+int  record_load(Game *g, const char *path);
+void record_start(Game *g);
+void record_tick(Game *g);
 void game_stage_start(Game *g, int stage);
 void game_tick(Game *g);
 

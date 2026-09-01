@@ -11,10 +11,9 @@
  * of DEPTH.FNT characters uploaded as PC-98 user-defined characters, which is
  * what the bottom half of docs/font.png is.
  *
- * Not written yet: "Record" and "Exit".  The ranking screen behind Record is
- * FUN_1000_a816 -> _8674 (its background) and _a846 (the table), with the name
- * entry at FUN_1000_ab76; Exit quits to DOS, which a port has nowhere to do.
- * Both are left as no-ops rather than invented.
+ * "Record" opens the ranking screen (src/record.c).  "Exit" does nothing: it
+ * quits to DOS, which a port has nowhere to do, so it is left alone rather
+ * than given an invented meaning.
  */
 #include "gameint.h"
 #include "pal.h"
@@ -209,6 +208,10 @@ void title_tick(Game *g)
 
     if ((g->pad & (PAD_A | PAD_B)) && g->menu_trig) {
         g->menu_trig = 0;
+        if (g->menu_sel == 1) {
+            record_start(g);
+            return;
+        }
         if (g->menu_sel == 0) {
             /* FUN_1000_0011's main loop: three lives, stage 1, no score. */
             g->lives = 3;

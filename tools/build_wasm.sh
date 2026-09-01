@@ -16,7 +16,7 @@ EXPORTS=$EXPORTS,_sd_frame_ms,_sd_audio,_sd_audio_rate,_sd_audio_max
 
 sh tools/lowpri.sh "$EMCC" -O2 -Wall -Wextra -Isrc \
    -o superdepth.js \
-   src/main_wasm.c src/game.c src/stage_sea.c src/stage_sky.c src/stage_space.c src/stage_boss.c src/title.c src/video.c src/text.c src/bfnt.c src/sound.c \
+   src/main_wasm.c src/game.c src/stage_sea.c src/stage_sky.c src/stage_space.c src/stage_boss.c src/title.c src/record.c src/video.c src/text.c src/bfnt.c src/sound.c \
    --embed-file orig/DEPTH.C32@/orig/DEPTH.C32 \
    --embed-file orig/DEPTH.C16@/orig/DEPTH.C16 \
    --embed-file orig/DEPTH.C08@/orig/DEPTH.C08 \
@@ -24,6 +24,7 @@ sh tools/lowpri.sh "$EMCC" -O2 -Wall -Wextra -Isrc \
    --embed-file orig/DEPTH.FNT@/orig/DEPTH.FNT \
    --embed-file orig/DEPTH.BGM@/orig/DEPTH.BGM \
    --embed-file orig/DEPTH.EFS@/orig/DEPTH.EFS \
+   --embed-file orig/DEPTH.SCR@/orig/DEPTH.SCR \
    -s MODULARIZE=0 -s EXPORTED_RUNTIME_METHODS=HEAPU8 \
    -s ALLOW_MEMORY_GROWTH=1 -s ENVIRONMENT=web,node \
    -s EXPORTED_FUNCTIONS="$EXPORTS"

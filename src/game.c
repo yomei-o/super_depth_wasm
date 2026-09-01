@@ -616,6 +616,9 @@ void game_tick(Game *g)
     case GS_TITLE:
         title_tick(g);
         return;
+    case GS_RECORD:
+        record_tick(g);
+        return;
     case GS_FADE_IN:
         scr_palette_fade(g->scr, g->pal, g->fade_step);
         draw_all(g);
