@@ -464,8 +464,10 @@ static void boss2(Game *g)
         }
         return;
     }
-    if (g->ent[14].state < 10 && --g->ent[14].state == 0)
-        g->ent[14].state = 10;
+    /* DS:0x1fc8 - slot 15.  The tail runs 3..14, so the spark has the one
+     * slot above it to itself. */
+    if (g->ent[15].state < 10 && --g->ent[15].state == 0)
+        g->ent[15].state = 10;
 
     if (g->boss_hits < 0xe) {
         /* Circling: it drifts toward the middle and lobs a fat shot. */
@@ -628,9 +630,11 @@ static void hit_boss(Game *g, Shot *s)
         if (b->x - 6 <= s->x && s->x <= b->x + 0x36 &&
             b->y + 2 <= s->y && s->y <= b->y + 0x2e) {
             sd_sfx(g, SFX_KILL);
-            g->ent[14].state = 9;
-            g->ent[14].x = s->x - 8;
-            g->ent[14].y = s->y - 8;
+            /* DS:0x1fc8 / 0x1fe8 / 0x1fa8 - slot 15, not the last tail
+             * segment. */
+            g->ent[15].state = 9;
+            g->ent[15].x = s->x - 8;
+            g->ent[15].y = s->y - 8;
             g->boss_hits++;
             g->score += SD_SCORE[4][3];
             sd_hud_score(g);
@@ -952,8 +956,16 @@ static void boss_draw(Game *g)
             } else {
                 draw_part(g, i, 1, (g->ent[1].vx > 0) ? 2 : 0);
             }
-        if (g->ent[14].state < 10)
-            sd_explosion(g, g->ent[14].x, g->ent[14].y, g->ent[14].state, 1);
+        /* The spark rides along with the head while it burns, and is only
+         * drawn while it is on screen. */
+        if (g->ent[15].state < 10) {
+            g->ent[15].x += g->ent[1].vx;
+            g->ent[15].y += g->ent[1].vy;
+            if (g->ent[15].y > -0x20 && g->ent[15].y < 0x160 &&
+                g->ent[15].x > 0 && g->ent[15].x < 0x260)
+                sd_explosion(g, g->ent[15].x, g->ent[15].y,
+                             g->ent[15].state, 1);
+        }
     } else {
         if (g->boss_phase < 0x28) {
             for (i = 1; i < 3; i++)
