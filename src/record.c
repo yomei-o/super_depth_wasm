@@ -20,6 +20,7 @@
 #include "gameint.h"
 #include "pal.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 /* The rank labels, DS:0x0546: a digit and then one of the font's "st", "nd",

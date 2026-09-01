@@ -1,7 +1,7 @@
 // Drive the WASM build under node and dump a frame, so the browser target can
 // be checked without opening a browser.
 //
-//   node tests/wasm_check.js <tick> [out.png]
+//   node tests/wasm_check.js <tick> [out.png] [stage] [padmask]
 //
 // The frame should match tests/frames.exe at the same tick with the same seed,
 // which is what makes this useful: the two front ends share the whole core.
@@ -10,6 +10,8 @@ const path = require('path');
 
 const tick = parseInt(process.argv[2] || '240', 10);
 const out = process.argv[3] || 'tests/out/wasm.png';
+const stage = parseInt(process.argv[4] || '0', 10);
+const pad = parseInt(process.argv[5] || '2', 10);
 
 // Under CommonJS the generated `var Module = typeof Module != "undefined" ...`
 // sees its own hoisted local, so a global set before the require is dropped.
@@ -29,8 +31,9 @@ const Module = require(path.resolve(__dirname, '../superdepth.js'));
     process.exit(1);
   }
   const w = Module._sd_width(), h = Module._sd_height();
+  if (stage) Module._sd_set_stage(stage);
   for (let t = 1; t <= tick; t++)
-    Module._sd_tick(2);   // hold right
+    Module._sd_tick(pad);
   const p = Module._sd_framebuffer();
   const rgba = Buffer.from(Module.HEAPU8.subarray(p, p + w * h * 4));
   fs.writeFileSync(out, png(w, h, rgba));

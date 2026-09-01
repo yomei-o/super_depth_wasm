@@ -108,8 +108,12 @@ EMSCRIPTEN_KEEPALIVE void sd_tick(unsigned pad)
 
 EMSCRIPTEN_KEEPALIVE void sd_set_stage(int stage)
 {
-    if (g_ready && stage >= 1 && stage <= 12)
-        game_stage_start(&g_game, stage);
+    if (!g_ready || stage < 1 || stage > 12)
+        return;
+    /* Say "Ready" rather than announcing the stage, which is also what
+     * tests/frames.exe --stage does, so the two can be compared. */
+    g_game.last_stage = stage;
+    game_stage_start(&g_game, stage);
 }
 
 int main(void)

@@ -50,9 +50,12 @@ sh tools/build_wasm.sh     # -> superdepth.js / superdepth.wasm
 sh tools/build_tests.sh    # -> tests/sheet.exe tests/frames.exe
 ```
 
-検証はウィンドウを開かずにできます。
+検証はウィンドウを開かずにできます。**`sh tools/check.sh` が全部やります**
+（3 つのビルド、全画面の描画、長時間走らせて止まらないこと、
+ネイティブと WASM の 1 ピクセル比較、音の WAV 出力）。
 
 ```sh
+sh tools/check.sh                           # 上の全部
 ./tests/sheet.exe tmp                       # BFNT を読んでシートと画面を PNG に
 ./tests/frames.exe tmp/f 20,60 --keys 0x06  # N フレーム走らせて PNG に
 ./tests/frames.exe tmp/a 1500 --auto --god  # 自動操縦で面クリアまで回す
@@ -127,6 +130,9 @@ python tools/disasm.py 0x8ae2 0x200
 ```
 
 **`tools/pngcrop.py`** — 書き出した PNG の一部を切り出して拡大。細部の確認用。
+
+**`tools/pngdiff.py`** — 2 枚の PNG を色で比較。ネイティブ（8bit インデックス）と
+WASM（RGB）を突き合わせるため、バイト比較ではなくパレットを解決して数えます。
 
 **`tools/bfnt.py`** — BFNT のスプライトを PNG のコンタクトシートに。
 

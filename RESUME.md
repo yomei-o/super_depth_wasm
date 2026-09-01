@@ -38,7 +38,12 @@ BGM 15 曲と効果音 6 種（内蔵ビープ 1 音）。**コマ数も原典�
 **コミット済み**。Ghidra が無い環境でも解析を続けられる。再生成はこの文書の
 末尾のコマンド。
 
+**まず `sh tools/check.sh` を通すこと。** 全部ビルドして、全画面を描いて、
+長時間走らせて止まらないことを確かめて、ネイティブと WASM を突き合わせて、
+音を WAV に落とすところまで一発でやる。
+
 ```sh
+sh tools/check.sh          # 上の全部
 sh tools/build.sh          # -> depth.exe（orig/ を読む）
 sh tools/build_wasm.sh     # -> superdepth.js / superdepth.wasm（EMSDK が要る）
 sh tools/build_tests.sh    # -> tests/sheet.exe tests/frames.exe
@@ -61,8 +66,14 @@ python tools/disasm.py 0x8ae2 0x200                 # 機械語を読む（capst
 無効にするテスト用のフラグ（`Game.invuln`。ゲーム側からは誰も立てない）。
 
 **ネイティブと WASM が 1 ピクセルも違わないことを毎回確かめる。** 同じ入力・
-同じティックで `tests/frames.exe` と `tests/wasm_check.js` を回して比較する
-（実測: `--keys 0x02` の 150 ティックで差分 0 ピクセル）。
+同じティックで `tests/frames.exe` と `tests/wasm_check.js` を回して
+`tools/pngdiff.py` で比較する（`tools/check.sh` がタイトルと 4 種類の面で
+やっている）。
+
+**`tools/build_wasm.sh` が「成功」と言っても信用しない仕組みが入っている。**
+`cmd /c start /WAIT` が emcc の終了コードを返さないので、以前はコンパイルが
+落ちても「built」と出て、古い `.wasm` が残ったまま比較に通っていた。いまは
+`.wasm` が書き換わったかを見て落ちる。
 
 ## 次にやること（この順が楽）
 
