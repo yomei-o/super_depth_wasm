@@ -29,8 +29,8 @@ PC-98 のテキストプレーンによる HUD（スコア・残機・枠・レ�
 | 3 SPACE | 宇宙。自機は上下に動いて左右へ撃つ。左右キーで世界のほうが流れる |
 | 4 BOSS | ボス 3 体（ステージ 4 / 8 / 12）。弱点に 20 発で倒せる |
 
-まだ無いもの: ネーム入力（ランキングへの書き込み）、Exit、
-面と面のあいだの演出。
+まだ無いもの: ネーム入力（ランキングへの書き込み）と、タイトルの Exit
+（DOS へ戻るものなので移植には行き先がありません）。
 
 ```
 ←/→ (H/L)     自機を左右に
@@ -105,6 +105,7 @@ Programming : alty
 | `src/stage_sea.c` `src/stage_sky.c` `src/stage_space.c` `src/stage_boss.c` | 面 1 本ずつ |
 | `src/title.c` | タイトル画面（ロゴは `DEPTH.FNT` の外字） |
 | `src/record.c` | ランキング画面（`DEPTH.SCR` を読む） |
+| `src/cut.c` | 面と面のあいだの演出 3 本 |
 | `src/main_win32.c` | ネイティブ（8bpp DIB） |
 | `src/main_wasm.c` | Emscripten（`putImageData` のみ、WebGL 不使用） |
 
@@ -161,6 +162,7 @@ python tools/bfnt.py orig/DEPTH.C32 tmp/c32.png --zoom 2 --cols 8
 ![SKY](docs/screen_stage2.png)
 ![SPACE](docs/screen_stage3.png)
 ![BOSS](docs/screen_stage4.png)
+![climb](docs/screen_climb.png)
 
 ## わかっていること
 
@@ -245,7 +247,8 @@ WinDepth には無いパワーアップが一通りあります。
 12. ~~種別 4（ボス面）~~ 済 — ボス 3 体
 13. ~~タイトル画面~~ 済 — `src/title.c`
 14. ~~Record（ランキング）~~ 済 — `src/record.c`
-15. ネーム入力（ランキングへの書き込み）、面と面のあいだの演出
+15. ~~面と面のあいだの演出~~ 済 — `src/cut.c`
+16. ネーム入力（ランキングへの書き込み）
 
 **具体的な次の手順・判明しているアドレス・踏んだ罠は
 [RESUME.md](RESUME.md) の冒頭「引き継ぎ」にまとめてあります。**

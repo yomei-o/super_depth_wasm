@@ -96,6 +96,7 @@ typedef struct {
 typedef enum {
     GS_TITLE,        /* FUN_1000_8ae2, src/title.c */
     GS_RECORD,       /* FUN_1000_a816, src/record.c */
+    GS_CUT,          /* between the stages, src/cut.c */
     GS_FADE_IN,      /* FUN_1000_82d7(0x2b8), 16 steps of 2 VSYNC ticks */
     GS_PLAY,
     GS_FLASH_UP,     /* FUN_1000_83b5(0x2b8), the flush bomb going off */
@@ -145,6 +146,9 @@ typedef struct Game {
     /* The title screen: which menu item is lit, the release latch the stick
      * needs, and where the credit line has got to. */
     int menu_sel, menu_trig, credit, credit_step;
+
+    /* Which of the between-stage animations is running, and how far in. */
+    int cut_kind, cut_step;
     int died;             /* local_4e; set when the last life ran out this stage */
 
     /* The item, DS:0x1dc0 / 0x193e / 0x1d40 / 0x1db2 / 0x1db4 / 0x1d44.
@@ -198,6 +202,12 @@ void title_tick(Game *g);
 int  record_load(Game *g, const char *path);
 void record_start(Game *g);
 void record_tick(Game *g);
+
+/* What plays between the stages (src/cut.c): 1 = SEA to SKY, 2 = SKY to
+ * SPACE, 3 = SPACE to BOSS.  game_stage_start runs one instead of the fade
+ * when a stage of type 2, 3 or 4 is entered for the first time. */
+void cut_start(Game *g, int kind);
+void cut_tick(Game *g);
 void game_stage_start(Game *g, int stage);
 void game_tick(Game *g);
 

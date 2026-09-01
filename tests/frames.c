@@ -3,7 +3,8 @@
  *
  *   frames <out-prefix> <tick>[,<tick>...] [--keys MASK] [--tap N] [--auto]
  *                                    [--god] [--bossweak]
- *                                    [--record] [--quiet] [--wav OUT.WAV]
+ *                                    [--record] [--fresh] [--quiet]
+ *                                    [--wav OUT.WAV]
  *                                    [--stage N]
  *
  * --tap releases the fire buttons every other N frames, since the original
@@ -144,7 +145,7 @@ int main(int argc, char **argv)
     int want[64], nwant = 0, maxtick = 0, base[4], i, t;
     unsigned keys = 0;
     int tap = 0, quiet = 0, auto_play = 0, god = 0, start_stage = 0;
-    int boss_weak = 0, record = 0;
+    int boss_weak = 0, record = 0, fresh = 0;
     const char *prefix = argc > 1 ? argv[1] : "tmp/f";
 
     if (argc > 2) {
@@ -168,6 +169,8 @@ int main(int argc, char **argv)
             boss_weak = 1;
         else if (!strcmp(argv[i], "--record"))
             record = 1;
+        else if (!strcmp(argv[i], "--fresh"))
+            fresh = 1;
         else if (!strcmp(argv[i], "--quiet"))
             quiet = 1;
         else if (!strcmp(argv[i], "--wav") && i + 1 < argc)
@@ -197,7 +200,10 @@ int main(int argc, char **argv)
     if (record)
         record_start(&game);
     if (start_stage > 0) {
-        game.last_stage = start_stage;   /* so it says "Ready", not "Stage nn" */
+        /* --fresh enters the stage the way finishing the one before does, so
+         * the between-stage animation plays; without it the stage is entered
+         * as a retry and says "Ready". */
+        game.last_stage = fresh ? 0 : start_stage;
         game_stage_start(&game, start_stage);
     }
     if (wav) {

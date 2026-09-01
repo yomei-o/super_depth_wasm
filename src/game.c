@@ -120,7 +120,7 @@ static void msg_clear(Game *g)          /* FUN_1000_a23c */
     txt_puts(&g->txt, 10, 8, 0xe1, "                                ");
 }
 
-static void msg_stage(Game *g)          /* FUN_1000_a196 */
+void sd_stage_banner(Game *g)           /* FUN_1000_a196 */
 {
     txt_puts(&g->txt, 10, 0x20, 0x41, "Stage");
     txt_num2(&g->txt, 10, 0x2c, 0xe1, g->stage);
@@ -281,13 +281,23 @@ void game_stage_start(Game *g, int stage)
     if (retry)
         msg_ready(g);
     else
-        msg_stage(g);
+        sd_stage_banner(g);
 
     /* FUN_1000_82d7(0x2b8): sixteen steps of two VSYNC ticks, fading up from
-     * black into the in-game palette. */
-    g->state = GS_FADE_IN;
+     * black into the in-game palette.  Types 2, 3 and 4 do NOT fade when they
+     * are entered fresh - they play an animation instead (src/cut.c), and only
+     * fade when the stage is being retried after a death. */
     g->fade_step = 0;
     g->fade_ticks = 0;
+    if (!retry && g->type > 1) {
+        /* The original runs the animation before the stage announces itself,
+         * so the banner this just put up comes down again until it ends. */
+        msg_clear(g);
+        sd_music(g, g->type + 2, 1);
+        cut_start(g, g->type - 1);
+        return;
+    }
+    g->state = GS_FADE_IN;
     scr_palette_fade(g->scr, g->pal, 0);
     sd_music(g, g->type + 2, 1);
 }
@@ -618,6 +628,9 @@ void game_tick(Game *g)
         return;
     case GS_RECORD:
         record_tick(g);
+        return;
+    case GS_CUT:
+        cut_tick(g);
         return;
     case GS_FADE_IN:
         scr_palette_fade(g->scr, g->pal, g->fade_step);

@@ -73,6 +73,9 @@ void sd_item_roll(Game *g);          /* FUN_1000_9d84 */
 void sd_item_apply(Game *g);         /* FUN_1000_80f0 */
 void sd_item_taken(Game *g);         /* the message, the sound, and the bomb */
 void sd_hud_score(Game *g);
+/* FUN_1000_a196 - "Stage nn".  The between-stage animations put it up when
+ * they finish, because the original runs them before the banner. */
+void sd_stage_banner(Game *g);
 void sd_quota(Game *g, int per, int shipmul);
 /* The default `motion`: every entity by its own velocity, then the ship. */
 void sd_motion(Game *g);
