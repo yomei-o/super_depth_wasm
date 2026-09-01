@@ -64,7 +64,7 @@ typedef struct {
  * and which value in `y` means the slot is free, so each of src/stage_*.c
  * says so for itself; the extra fields are the ones only some of them use. */
 typedef struct { int y, x, v; } Bullet;
-typedef struct { int y, x, vx, vy; } Missile;
+typedef struct { int y, x, vx, vy, t; } Missile;   /* t: BOSS homes while it lasts */
 
 /* SPACE's starfield: 70 of them in three parallax layers, scrolled by the
  * ship's horizontal speed. */
@@ -125,6 +125,11 @@ typedef struct Game {
     int trig;             /* buttons have to be released between charges */
     int shots_live, bullets_live, missiles_live, alive;
     int kills, quota;     /* the stage's local_2c and local_28 */
+
+    /* BOSS: the boss is not an entity with a kind, it is a body made of
+     * entity slots whose `kind` field holds a pattern number.  These are its
+     * counters - twenty hits kill it, and the phase then runs the death. */
+    int boss_hits, boss_phase, boss_timer, boss_blasts;
     int died;             /* local_4e; set when the last life ran out this stage */
 
     /* The item, DS:0x1dc0 / 0x193e / 0x1d40 / 0x1db2 / 0x1db4 / 0x1d44.
@@ -156,6 +161,8 @@ typedef struct Game {
     unsigned rnd;
     int invuln;           /* test hook: tests/frames.exe --god, so a long run
                            * can reach a stage clear without playing well */
+    int boss_weak;        /* DS:0x181a, the original's own -B switch: the boss
+                           * starts one hit from death */
     int base_c32, base_c16, base_c08, base_bos;
 } Game;
 

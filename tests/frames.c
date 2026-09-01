@@ -2,7 +2,8 @@
  * screen as PNGs, so it can be checked without opening a window.
  *
  *   frames <out-prefix> <tick>[,<tick>...] [--keys MASK] [--tap N] [--auto]
- *                                    [--god] [--quiet] [--wav OUT.WAV]
+ *                                    [--god] [--bossweak]
+ *                                    [--quiet] [--wav OUT.WAV]
  *                                    [--stage N]
  *
  * --tap releases the fire buttons every other N frames, since the original
@@ -76,8 +77,10 @@ static unsigned autopilot(const Game *g, int t)
 
         if (g->ent[i].y <= 0xf || g->ent[i].state < 10)
             continue;
-        if (g->ent[i].x < 0 || g->ent[i].x > 0x240)
+        if (g->ent[i].x < -0x20 || g->ent[i].x > 0x240)
             continue;
+        if (g->type == 4 && i != 1)
+            continue;                    /* the boss is one body in slot 1 */
         d = g->ent[i].x - g->px;
         if (d < 0)
             d = -d;
@@ -89,6 +92,29 @@ static unsigned autopilot(const Game *g, int t)
     if (best >= 0) {
         int d = g->ent[best].x - g->px;
 
+        if (g->type >= 3) {
+            /* SPACE and BOSS fire sideways, so line up in y instead and pick
+             * the gun that points at the target.  On a boss stage aim at the
+             * weak band rather than the top of the body, and back off in x so
+             * the shots have somewhere to travel. */
+            int ty = g->ent[best].y +
+                     (g->type == 4 ? (g->stage == 4 ? 0x28 : 0x18) : 0);
+            int dy = ty - g->py;
+
+            if (dy > 4)
+                pad |= PAD_DOWN;
+            else if (dy < -4)
+                pad |= PAD_UP;
+            if (g->type == 4) {
+                if (d < 0 && g->px < 0x180)
+                    pad |= PAD_RIGHT;
+                else if (d > 0 && g->px > 0xa0)
+                    pad |= PAD_LEFT;
+            }
+            if (t & 1)
+                pad |= (d < 0) ? PAD_A : PAD_B;
+            return pad;
+        }
         if (d > 4)
             pad |= PAD_RIGHT;
         else if (d < -4)
@@ -118,6 +144,7 @@ int main(int argc, char **argv)
     int want[64], nwant = 0, maxtick = 0, base[4], i, t;
     unsigned keys = 0;
     int tap = 0, quiet = 0, auto_play = 0, god = 0, start_stage = 0;
+    int boss_weak = 0;
     const char *prefix = argc > 1 ? argv[1] : "tmp/f";
 
     if (argc > 2) {
@@ -137,6 +164,8 @@ int main(int argc, char **argv)
             auto_play = 1;
         else if (!strcmp(argv[i], "--god"))
             god = 1;
+        else if (!strcmp(argv[i], "--bossweak"))
+            boss_weak = 1;
         else if (!strcmp(argv[i], "--quiet"))
             quiet = 1;
         else if (!strcmp(argv[i], "--wav") && i + 1 < argc)
@@ -161,6 +190,7 @@ int main(int argc, char **argv)
     scr_init(&scr, &bank);
     game_init(&game, &scr, &bank, &font, base[0], base[1], base[2], base[3]);
     game.invuln = god;
+    game.boss_weak = boss_weak;
     if (start_stage > 0) {
         game.last_stage = start_stage;   /* so it says "Ready", not "Stage nn" */
         game_stage_start(&game, start_stage);

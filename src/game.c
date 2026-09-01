@@ -60,11 +60,10 @@ int game_frame_ms(const Game *g)
 
 const Stage *stage_for(int type)
 {
-    /* Type 4 (BOSS) has not been written yet, so it gets the SEA loop with its
-     * own roster - wrong, but it runs. */
     switch (type) {
     case 2: return stage_sky();
     case 3: return stage_space();
+    case 4: return stage_boss();
     default: return stage_sea();
     }
 }
@@ -268,6 +267,7 @@ void game_stage_start(Game *g, int stage)
     }
     g->shots_live = g->bullets_live = g->missiles_live = g->alive = 0;
     g->kills = 0;
+    g->boss_hits = g->boss_phase = g->boss_timer = g->boss_blasts = 0;
     g->died = 0;
     g->pal_a = g->pal_b = g->pal_c = 0;
     g->item_kind = g->item_x = g->item_y = g->item_vx = g->item_vy = 0;

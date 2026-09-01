@@ -13,7 +13,7 @@ Windows 版の続編 **WinDepth** の移植はこちら → https://github.com/y
 
 遊べる（というより見られる）: https://yomei-o.github.io/super_depth_wasm/
 
-できていること: **SEA / SKY / SPACE の 3 種類の面が遊べて、音も鳴ります。**
+できていること: **4 種類の面が全部遊べて、音も鳴ります。**
 640×400 16 色の画面と本物のパレット（毎フレームの色替えも）、BFNT スプライト
 238 枚、敵 5 種の湧き・移動・射撃・撃墜と爆発、アイテム 7 種とフラッシュボム、
 PC-98 のテキストプレーンによる HUD（スコア・残機・枠・レーダー・メッセージ）、
@@ -27,9 +27,9 @@ PC-98 のテキストプレーンによる HUD（スコア・残機・枠・レ�
 | 1 SEA | 海。自機は水面を左右に動き、左右 2 門の爆雷を沈める |
 | 2 SKY | 空。自機は画面下で上へ撃つ。敵は上から降りてきて爆弾を落とす |
 | 3 SPACE | 宇宙。自機は上下に動いて左右へ撃つ。左右キーで世界のほうが流れる |
-| 4 BOSS | **まだ**（ステージ 4 / 8 / 12。いまは SEA のロジックで動きます） |
+| 4 BOSS | ボス 3 体（ステージ 4 / 8 / 12）。弱点に 20 発で倒せる |
 
-まだ無いもの: ボス面、面と面のあいだの演出、タイトル、ネーム入力。
+まだ無いもの: 面と面のあいだの演出、タイトル、ネーム入力。
 
 ```
 ←/→ (H/L)     自機を左右に
@@ -98,7 +98,7 @@ Programming : alty
 | `src/tables.h` | EXE から取り出した得点表と敵の編成表 |
 | `src/sound.c` `src/sound.h` | BGMLIB の MML と効果音を矩形波 1 音で |
 | `src/game.c` `src/game.h` `src/gameint.h` | 面の種別に共通な部分とフレームの骨格 |
-| `src/stage_sea.c` `src/stage_sky.c` `src/stage_space.c` | 面 1 本ずつ |
+| `src/stage_sea.c` `src/stage_sky.c` `src/stage_space.c` `src/stage_boss.c` | 面 1 本ずつ |
 | `src/main_win32.c` | ネイティブ（8bpp DIB） |
 | `src/main_wasm.c` | Emscripten（`putImageData` のみ、WebGL 不使用） |
 
@@ -140,6 +140,7 @@ python tools/bfnt.py orig/DEPTH.C32 tmp/c32.png --zoom 2 --cols 8
 ![SEA](docs/screen_stage1_b.png)
 ![SKY](docs/screen_stage2.png)
 ![SPACE](docs/screen_stage3.png)
+![BOSS](docs/screen_stage4.png)
 
 ## わかっていること
 
@@ -221,7 +222,8 @@ WinDepth には無いパワーアップが一通りあります。
 9. ~~フレーム間隔~~ 済 — `DS:0x0dd0` は VSYNC のカウンタ。VSYNC/5 ＝ 毎秒 11 コマ
 10. ~~BGM と効果音~~ 済 — `src/sound.c`（8253 の割り込みごと再現）
 11. ~~種別 2 (SKY) と 3 (SPACE)~~ 済
-12. 種別 4（ボス面）、面と面のあいだの演出、タイトル、ネーム入力
+12. ~~種別 4（ボス面）~~ 済 — ボス 3 体
+13. 面と面のあいだの演出、タイトル、ネーム入力
 
 **具体的な次の手順・判明しているアドレス・踏んだ罠は
 [RESUME.md](RESUME.md) の冒頭「引き継ぎ」にまとめてあります。**

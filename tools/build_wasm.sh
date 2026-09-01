@@ -16,7 +16,7 @@ EXPORTS=$EXPORTS,_sd_frame_ms,_sd_audio,_sd_audio_rate,_sd_audio_max
 
 sh tools/lowpri.sh "$EMCC" -O2 -Wall -Wextra -Isrc \
    -o superdepth.js \
-   src/main_wasm.c src/game.c src/stage_sea.c src/stage_sky.c src/stage_space.c src/video.c src/text.c src/bfnt.c src/sound.c \
+   src/main_wasm.c src/game.c src/stage_sea.c src/stage_sky.c src/stage_space.c src/stage_boss.c src/video.c src/text.c src/bfnt.c src/sound.c \
    --embed-file orig/DEPTH.C32@/orig/DEPTH.C32 \
    --embed-file orig/DEPTH.C16@/orig/DEPTH.C16 \
    --embed-file orig/DEPTH.C08@/orig/DEPTH.C08 \

@@ -10,7 +10,7 @@
  *   type 1  SEA    FUN_1000_06f6   src/stage_sea.c
  *   type 2  SKY    FUN_1000_1fdc   src/stage_sky.c
  *   type 3  SPACE  FUN_1000_383a   src/stage_space.c
- *   type 4  BOSS   FUN_1000_5818   not written yet
+ *   type 4  BOSS   FUN_1000_5818   src/stage_boss.c
  *
  * Nothing in here is part of the port's interface; front ends only need
  * game.h.
@@ -57,6 +57,7 @@ const Stage *stage_for(int type);
 const Stage *stage_sea(void);
 const Stage *stage_sky(void);
 const Stage *stage_space(void);
+const Stage *stage_boss(void);
 
 /* --- game.c, for the stage modules ------------------------------------- */
 
