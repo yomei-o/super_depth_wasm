@@ -720,6 +720,23 @@ FUN_1000_ba8c(7, 0, 0xf, 0xf);
 
 BGMLIB は `DEPTH.EXE` に静的リンクされているので、そこから読んだ。
 
+曲番号は `DEPTH.BGM` の冒頭のコメントがそのまま持っている。同梱の
+`orig/DEPTHBGM.DOC`（作曲者本人のライナーノーツ）に日本語の曲名と作曲者が
+あるので、突き合わせるとこうなる。
+
+| # | BGM のコメント | 曲名（DEPTHBGM.DOC） | 作曲 |
+|---|---|---|---|
+| 1 | Bio_100% | Bio_100% TITLE ジングル | T.Ichikawa |
+| 2 | THEME OF SUPER DEPTH | 「S・D のテーマ」(OPENING) | CLAUDE |
+| 3 | SEA | 行進曲「銀色の潮流」(STAGE 1) | CLAUDE |
+| 4 | SKY | 「風の腕の中で」(STAGE 2) | FIN |
+| 5 | SPACE | 「ちょっとおまち」(STAGE 3) | FIN |
+| 6 | BOSS | 「御両親どうとかいう」(BOSS STAGE) | FIN |
+| 7 | GAME OVER | その他 | ケイ |
+| 8 | NAME INN | 「つけるなの」(NAMING) | FIN |
+| 9..13, 15 | SEA/SKY/BOSS CLEAR, BOSS ALARM | その他 | ケイ |
+| 14 | ENDING | 「地球、そして〜」(ENDING) | FIN |
+
 ### 割り込み — 1000:d81a
 
 8253 のカウンタ 0。毎回 `(基準 * 120) / テンポ` で分周値を入れ直すので、
