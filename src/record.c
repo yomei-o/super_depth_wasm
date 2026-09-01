@@ -43,36 +43,71 @@ static const unsigned char HEADER[] = {
     'D', 'a', 't', 'e', ' ', ' ', ' ', 0
 };
 
+/* The ten lines as they sit in the file, both ways round.  DEPTH.SCR is
+ * fixed-width, so a line only counts if it is long enough. */
+void record_parse(Game *g, const char *text)
+{
+    int n;
+
+    for (n = 0; n < RANK_ROWS; n++) {
+        g->rank[n].score = 0;
+        g->rank[n].stage = 0;
+        strcpy(g->rank[n].name, "--------");
+        strcpy(g->rank[n].date, "00/00/00");
+    }
+    n = 0;
+    while (n < RANK_ROWS && text && *text) {
+        const char *nl = strchr(text, '\n');
+        size_t len = nl ? (size_t)(nl - text) : strlen(text);
+
+        if (len >= 27) {
+            g->rank[n].score = atol(text);
+            g->rank[n].stage = atoi(text + 7);
+            memcpy(g->rank[n].name, text + 10, 8);
+            g->rank[n].name[8] = 0;
+            memcpy(g->rank[n].date, text + 19, 8);
+            g->rank[n].date[8] = 0;
+            n++;
+        }
+        if (!nl)
+            break;
+        text = nl + 1;
+    }
+}
+
+/* The layout is DS:0x0ac3's template: "000000 00          00/00/00". */
+int record_format(Game *g, char *out, int max)
+{
+    int i, n = 0;
+
+    for (i = 0; i < RANK_ROWS; i++) {
+        if (n + 30 > max)
+            break;
+        n += sprintf(out + n, "%06ld %02d %-8.8s %-8.8s\r\n",
+                     g->rank[i].score, g->rank[i].stage,
+                     g->rank[i].name, g->rank[i].date);
+    }
+    return n;
+}
+
 int record_load(Game *g, const char *path, const char *save_path)
 {
     FILE *f = fopen(path, "rb");
-    char line[64];
-    int n = 0;
+    char text[RANK_ROWS * 40 + 1];
+    size_t n;
 
     strncpy(g->score_path, save_path ? save_path : path,
             sizeof g->score_path - 1);
     g->score_path[sizeof g->score_path - 1] = 0;
 
-    memset(g->rank, 0, sizeof g->rank);
-    for (n = 0; n < RANK_ROWS; n++) {
-        strcpy(g->rank[n].name, "--------");
-        strcpy(g->rank[n].date, "00/00/00");
-    }
-    if (!f)
+    if (!f) {
+        record_parse(g, "");
         return -1;
-    n = 0;
-    while (n < RANK_ROWS && fgets(line, sizeof line, f)) {
-        if (strlen(line) < 27)
-            continue;
-        g->rank[n].score = atol(line);
-        g->rank[n].stage = atoi(line + 7);
-        memcpy(g->rank[n].name, line + 10, 8);
-        g->rank[n].name[8] = 0;
-        memcpy(g->rank[n].date, line + 19, 8);
-        g->rank[n].date[8] = 0;
-        n++;
     }
+    n = fread(text, 1, sizeof text - 1, f);
+    text[n] = 0;
     fclose(f);
+    record_parse(g, text);
     return 0;
 }
 
@@ -204,14 +239,17 @@ int record_insert(Game *g)
  * "000000 00          00/00/00". */
 int record_save(Game *g, const char *path)
 {
-    FILE *f = fopen(path, "wb");
-    int i;
+    char text[RANK_ROWS * 40 + 1];
+    int n = record_format(g, text, (int)sizeof text - 1);
+    FILE *f;
 
+    /* Bumped whether or not the write lands, so a front end with nowhere to
+     * write - the WASM one - still knows the table changed. */
+    g->score_serial++;
+    f = fopen(path, "wb");
     if (!f)
         return -1;
-    for (i = 0; i < RANK_ROWS; i++)
-        fprintf(f, "%06ld %02d %-8.8s %-8.8s\r\n", g->rank[i].score,
-                g->rank[i].stage, g->rank[i].name, g->rank[i].date);
+    fwrite(text, 1, (size_t)n, f);
     fclose(f);
     return 0;
 }

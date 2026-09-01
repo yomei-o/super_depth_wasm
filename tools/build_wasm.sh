@@ -13,6 +13,8 @@ EMCC="$EMSDK/upstream/emscripten/emcc.exe"
 EXPORTS=_main,_sd_init,_sd_tick,_sd_width,_sd_height,_sd_framebuffer
 EXPORTS=$EXPORTS,_sd_patterns,_sd_stage,_sd_set_stage,_sd_score,_sd_lives
 EXPORTS=$EXPORTS,_sd_frame_ms,_sd_audio,_sd_audio_rate,_sd_audio_max
+EXPORTS=$EXPORTS,_sd_scores_buf,_sd_scores_size,_sd_scores_serial
+EXPORTS=$EXPORTS,_sd_scores_get,_sd_scores_set
 
 SRC="src/main_wasm.c src/game.c src/stage_sea.c src/stage_sky.c"
 SRC="$SRC src/stage_space.c src/stage_boss.c src/title.c src/record.c src/cut.c src/name.c"

@@ -114,6 +114,10 @@ Programming : alty
 | `src/record.c` | ランキング画面（`DEPTH.SCR` を読む） |
 | `src/cut.c` | 面と面のあいだの演出 3 本 |
 | `src/name.c` | ネーム入力（`DEPTH.SCR` へ書き戻す） |
+
+ランキングの保存先だけ原典と変えてあります。ネイティブは `orig/DEPTH.SCR` を
+読んで実行ファイルの隣に書き（配布物を書き換えないため）、WASM は
+ディスクが無いので `localStorage` に置きます（中身は同じ固定長テキスト）。
 | `src/main_win32.c` | ネイティブ（8bpp DIB） |
 | `src/main_wasm.c` | Emscripten（`putImageData` のみ、WebGL 不使用） |
 

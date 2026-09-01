@@ -59,7 +59,8 @@
   BGM 15 曲と効果音（内蔵ビープ 1 音、BGMLIB の MML をそのまま鳴らしています）。
   コマ数も原典どおりで、VSYNC 5 回に 1 フレーム＝毎秒 11 コマです。
   <br>
-  ネーム入力（ランキングへの書き込み）だけまだ入っていません。
+  ハイスコアを出すとネームが入れられます（ブラウザには置き場所が無いので、
+  原典が `DEPTH.SCR` に書くところを localStorage にしています）。
   解析メモは <a href="https://github.com/yomei-o/super_depth_wasm">GitHub</a> の
   RESUME.md にあります。
 </div>
@@ -111,12 +112,39 @@ function startAudio() {
   audio = { ctx, node };
 }
 
+// ランキングの保存先。原典は DEPTH.SCR をディスクに書き戻すが、ページには
+// ディスクが無いのでブラウザの localStorage をその代わりにする。
+// 中身は DEPTH.SCR とまったく同じ固定長テキスト。
+const SCORE_KEY = 'superdepth.scr';
+
+function scoresRestore() {
+  let text;
+  try { text = localStorage.getItem(SCORE_KEY); } catch (e) { return; }
+  if (!text) return;
+  const p = Module._sd_scores_buf(), max = Module._sd_scores_size() - 1;
+  const bytes = new TextEncoder().encode(text).subarray(0, max);
+  Module.HEAPU8.set(bytes, p);
+  Module.HEAPU8[p + bytes.length] = 0;
+  Module._sd_scores_set();
+}
+
+function scoresStore() {
+  Module._sd_scores_get();
+  const p = Module._sd_scores_buf();
+  let n = 0;
+  while (n < Module._sd_scores_size() && Module.HEAPU8[p + n]) n++;
+  const text = new TextDecoder().decode(Module.HEAPU8.subarray(p, p + n));
+  try { localStorage.setItem(SCORE_KEY, text); } catch (e) { /* private mode */ }
+}
+
 var Module = {
   onRuntimeInitialized() {
     if (Module._sd_init() !== 0) {
       statusEl.textContent = 'BFNT の読み込みに失敗しました';
       return;
     }
+    scoresRestore();
+    let scoreSerial = Module._sd_scores_serial();
     const w = Module._sd_width(), h = Module._sd_height();
     const img = ctx2d.createImageData(w, h);
     statusEl.textContent =
@@ -128,6 +156,10 @@ var Module = {
     // 種別 3/4 の面は 1 ティック速いので、毎回聞き直す。
     const step = () => {
       Module._sd_tick(pad);
+      if (Module._sd_scores_serial() !== scoreSerial) {
+        scoreSerial = Module._sd_scores_serial();
+        scoresStore();
+      }
       const p = Module._sd_framebuffer();
       img.data.set(Module.HEAPU8.subarray(p, p + w * h * 4));
       ctx2d.putImageData(img, 0, 0);

@@ -157,6 +157,7 @@ typedef struct Game {
     int name_row, name_key, name_col, name_pos;
     char name_buf[9];
     char score_path[260];  /* where DEPTH.SCR is written back */
+    int score_serial;      /* bumped on every save, so a front end can tell */
     int died;             /* local_4e; set when the last life ran out this stage */
 
     /* The item, DS:0x1dc0 / 0x193e / 0x1d40 / 0x1db2 / 0x1db4 / 0x1d44.
@@ -211,6 +212,8 @@ void title_tick(Game *g);
  * the same file, but a port had better not scribble on the shipped one. */
 int  record_load(Game *g, const char *path, const char *save_path);
 int  record_save(Game *g, const char *path);
+void record_parse(Game *g, const char *text);
+int  record_format(Game *g, char *out, int max);
 int  record_insert(Game *g);          /* returns the row, or -1 */
 void record_draw_table(Game *g, int highlight_row);
 void record_draw_frame(Game *g);

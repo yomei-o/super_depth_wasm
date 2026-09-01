@@ -24,6 +24,7 @@ static TextFont g_font;
 static SndData  g_snddata;
 static Snd      g_snd;
 static short    g_pcm[8192];
+static char     g_scores[512];
 static unsigned char g_rgba[SCR_W * SCR_H * 4];
 static int g_ready;
 
@@ -85,6 +86,29 @@ EMSCRIPTEN_KEEPALIVE int sd_audio_max(void)
 {
     return (int)(sizeof g_pcm / sizeof g_pcm[0]);
 }
+/* The ranking table, in and out.
+ *
+ * The original writes DEPTH.SCR back to the disk it loaded it from; a page has
+ * no disk, so the browser's own store takes its place.  The page hands the
+ * saved text back through this buffer at start-up, and copies it out again
+ * whenever sd_scores_serial() changes.  Nothing here decides where it goes -
+ * that is the page's business.
+ */
+EMSCRIPTEN_KEEPALIVE char *sd_scores_buf(void) { return g_scores; }
+EMSCRIPTEN_KEEPALIVE int sd_scores_size(void) { return (int)sizeof g_scores; }
+EMSCRIPTEN_KEEPALIVE int sd_scores_serial(void) { return g_game.score_serial; }
+
+EMSCRIPTEN_KEEPALIVE void sd_scores_get(void)
+{
+    record_format(&g_game, g_scores, (int)sizeof g_scores - 1);
+}
+
+EMSCRIPTEN_KEEPALIVE void sd_scores_set(void)
+{
+    g_scores[sizeof g_scores - 1] = 0;
+    record_parse(&g_game, g_scores);
+}
+
 EMSCRIPTEN_KEEPALIVE short *sd_audio(int frames)
 {
     int cap = (int)(sizeof g_pcm / sizeof g_pcm[0]);
