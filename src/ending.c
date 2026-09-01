@@ -115,7 +115,7 @@ static void planet_tick(Game *g)
         g->py += sd_sgn(0xa4 - g->py);
 
     sd_fill(g, 0, 0, 0x4f, 0x18f, 8);
-    for (i = 0; i < MAX_STAR; i++) {
+    for (i = 0; i < STAR_VIEW; i++) {
         g->star[i].x += g->star[i].layer * 2;
         if (g->star[i].x > 0x27f)
             g->star[i].x -= 0x280;

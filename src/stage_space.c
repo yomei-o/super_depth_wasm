@@ -48,7 +48,8 @@ static void space_start(Game *g)
     }
     for (i = 1; i < MAX_ENT; i++)
         g->ent[i].y = g->ent_off;
-    for (i = 0; i < MAX_STAR; i++) {
+    g->nstar = STAR_VIEW;             /* FUN_1000_383a's 0x46 */
+    for (i = 0; i < g->nstar; i++) {
         g->star[i].x = sd_rand(g) % 0x280;
         g->star[i].y = sd_rand(g) % 0x160;
         /* Two bands of colour, dim and bright, and three scroll speeds. */
@@ -507,7 +508,7 @@ static void space_motion(Game *g)
         g->ent[i].y += g->ent[i].vy;
     }
     g->py += g->pvy;
-    for (i = 0; i < MAX_STAR; i++) {
+    for (i = 0; i < g->nstar; i++) {
         g->star[i].x -= g->star[i].layer * g->pvx;
         if (g->star[i].x < 0)
             g->star[i].x += 0x280;
@@ -523,7 +524,7 @@ static void space_draw(Game *g)
     int i;
 
     sd_fill(g, 4, 0, 0x4b, 0x15f, 0);
-    for (i = 0; i < MAX_STAR; i++) {
+    for (i = 0; i < g->nstar; i++) {
         int x = g->star[i].x, y = g->star[i].y;
 
         if (x >= 32 && x < 608 && y >= 0 && y < 0x160)

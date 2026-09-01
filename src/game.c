@@ -209,6 +209,7 @@ void game_init(Game *g, Screen *scr, const PatBank *bank, const TextFont *font,
     g->speed = 4;
     g->shot_max = 4;
     g->last_stage = 1;
+    g->nstar = STAR_VIEW;
     /* The title does not run a stage, but draw_all goes through stage_ops, so
      * give it something before anything can ask. */
     g->stage_ops = stage_for(1);

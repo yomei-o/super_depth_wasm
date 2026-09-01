@@ -79,7 +79,12 @@ typedef struct {
 
 /* SPACE's starfield: 70 of them in three parallax layers, scrolled by the
  * ship's horizontal speed. */
-#define MAX_STAR 70
+/* Each stage keeps its own star field on its own stack, and they are not the
+ * same size: the boss stage has 100 (FUN_1000_5818's local_1c4[100]) and the
+ * space stage 70 (FUN_1000_383a's 0x46).  The cut scene and the ending walk
+ * 70 of whichever array they were handed. */
+#define MAX_STAR  100
+#define STAR_VIEW 70     /* what FUN_1000_91fe and _95a4 loop over */
 typedef struct { int x, y, layer, colour; } Star;
 
 typedef struct {
@@ -182,6 +187,7 @@ typedef struct Game {
     unsigned char pal[16][3];
 
     Star star[MAX_STAR];
+    int nstar;            /* how many of them this stage uses */
     Rank rank[RANK_ROWS];
 
     Ent ent[MAX_ENT];

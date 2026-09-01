@@ -104,7 +104,8 @@ static void boss_start(Game *g)
         g->ent[i].y = g->ent_off;
         g->ent[i].vx = g->ent[i].vy = g->ent[i].aux = g->ent[i].speed = 0;
     }
-    for (i = 0; i < MAX_STAR; i++) {
+    g->nstar = MAX_STAR;              /* FUN_1000_5818's local_1c4[100] */
+    for (i = 0; i < g->nstar; i++) {
         g->star[i].x = sd_rand(g) % 0x280;
         g->star[i].y = sd_rand(g) % 0x160;
         g->star[i].colour = sd_rand(g) % 4 + 0xc;   /* the bright band only */
@@ -863,7 +864,7 @@ static void boss_motion(Game *g)
             g->ent[i].y += vy;
         }
     }
-    for (i = 0; i < MAX_STAR; i++) {
+    for (i = 0; i < g->nstar; i++) {
         g->star[i].y += 5;
         if (g->star[i].y > 0x160)
             g->star[i].y -= 0x160;
@@ -893,7 +894,7 @@ static void boss_draw(Game *g)
     int i, b = which_boss(g), bos = g->base_c16;
 
     sd_fill(g, 4, 0, 0x4b, 0x15f, 0);
-    for (i = 0; i < MAX_STAR; i++) {
+    for (i = 0; i < g->nstar; i++) {
         int y = g->star[i].y;
         int x;
 

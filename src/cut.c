@@ -174,7 +174,7 @@ static void climb_tick(Game *g)
             scr_pat_opaque(g->scr, x, k - 0x170, g->base_c16 + 0x6a);
     }
     if (k > 0x2bf && k < CLIMB_END)
-        for (i = 0; i < MAX_STAR; i++)
+        for (i = 0; i < STAR_VIEW; i++)
             if (CLIMB_END - k < g->star[i].y) {
                 int sy = k + g->star[i].y - CLIMB_END;
 
@@ -198,7 +198,7 @@ static void climb_tick(Game *g)
 
     if (++g->cut_step * CLIMB_STEP >= CLIMB_END) {
         sd_fill(g, 4, 0, 0x4b, 0x15f, 8);
-        for (i = 0; i < MAX_STAR; i++)
+        for (i = 0; i < STAR_VIEW; i++)
             if (g->star[i].x >= 32 && g->star[i].x < 608 &&
                 g->star[i].y >= 0 && g->star[i].y < 0x160)
                 g->scr->px[(long)g->star[i].y * SCR_W + g->star[i].x] =
