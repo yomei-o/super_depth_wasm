@@ -1,6 +1,6 @@
-# Ghidra output and project - big, machine-generated, and reproducible with the
-# command in RESUME.md.
-/decomp/
+# The Ghidra PROJECT is machine-local and big; the decompilation output itself is
+# committed (decomp/) so the analysis can be continued on a machine without
+# Ghidra installed.  Regenerate either with the command in RESUME.md.
 /ghidra_proj/
 
 # Scratch: PNG dumps and disassembly snippets while poking at the binary.

@@ -1,7 +1,163 @@
 # RESUME — Super Depth (PC-98, 1991) を C に戻して native -> WASM
 
 WinDepth の移植（https://github.com/yomei-o/windepth_wasm）と同じ手順で、
-その原型である PC-98 版を扱う。まだ解析段階。
+その原型である PC-98 版を扱う。
+
+---
+
+# 引き継ぎ（ここから読む）
+
+## いまどこまで
+
+**動く**: `depth.exe`（ネイティブ）と https://yomei-o.github.io/super_depth_wasm/ （WASM）。
+640×400 16 色、本物のパレット、BFNT スプライト 238 枚、自機の移動、左右 2 門の
+爆雷（曲がる）、敵の湧き・移動・射撃（種別 1/2/3/4/9）、敵弾とミサイル、
+両方向の当たり判定、得点、ノルマ制。type 1 (SEA) ステージのみ。
+
+**まだ無い**: アイテムとパワーアップ、スコア表示、クリア／死亡の遷移（推定で仮置き）、
+死亡アニメ、種別 2/4 の正しいスプライト、残り 3 ステージ、ボス、BGM、効果音、
+タイトル、ネーム入力。
+
+## そのまま続けられる状態
+
+`decomp/` に Ghidra の出力（`all.c` 19,958 行 / `functions/*.c` 238 個 / `index.csv`）を
+**コミット済み**。Ghidra が無い環境でも解析を続けられる。再生成はこの文書の
+末尾のコマンド。
+
+```sh
+sh tools/build.sh          # -> depth.exe（orig/ を読む）
+sh tools/build_wasm.sh     # -> superdepth.js / superdepth.wasm（EMSDK が要る）
+sh tools/build_tests.sh    # -> tests/sheet.exe tests/frames.exe
+
+./tests/frames.exe tmp/f 120,240 --keys 0x06   # 1=左 2=右 4=Z 8=X
+./tests/sheet.exe tmp                          # 全パターンを PNG に
+node tests/wasm_check.js 120 tmp/w.png         # WASM 側も同じ絵が出るか
+```
+
+**検証はウィンドウを開かずに `tests/frames.exe` で PNG に落とす。**
+`depth.exe` を起動すると作業中のデスクトップからフォーカスを奪うので、
+確認したいだけなら PNG で済ませる。
+
+## 次にやること（この順が楽）
+
+### 1. クリア／死亡の遷移を確定させる
+
+いま `src/game.c` の `game_tick` 末尾にある「ノルマ達成 + 敵が居なくなったら次面」は
+**推定**。原典の出口は `0x13f5` から `0x1faa` への jmp。`0x1faa` 付近
+（`decomp/functions/FUN_1000_1faa.c`）を読めば、面クリアと残機減の分岐が出る。
+`0x1fa6`/`0x1fa8` からフレーム先頭（`0x0993`/`0x083b`）へ戻る jmp と合わせて読む。
+
+### 2. アイテムとパワーアップ
+
+材料は揃っている。
+
+* 抽選表 **`DS:0x0524`** = `1,1,1,1, 2,2,2,2, 3,3, 4,4, 5,5, 6, 7`（16 エントリ）。
+  種別 9 を倒すと `FUN_1000_9d84` が `rnd % 0x10` で引く
+* `FUN_1000_9d84` の調整: 素の状態（`0x181e==0 && 0x20c6==0`）で 4 が出たら
+  `(rnd%2)*2+3` = 3 か 5 に差し替え。3 か 5 が出て既に `0x181e==1 && 0x20c6==1` なら 4 にまとめる
+* 種別と表示文字（`FUN_1000_a0d8` の switch と DS の文字列）:
+  1 `Speed Up!`(0x9f6/0xa00) / 2 `Shot Max Up!`(0xa0a) / 3 `Shot Power Up!`(0xa17) /
+  4 `Full Power!`(0xa40/0xa4c) / 5 `Shot Special!`(0xa32) / 6 `Flush Bomb!`(0xa26) /
+  7 `Ship 1up!`(0xa58)
+* 効果の即値は機械語に出ている（`tools/callsites.py` と同じ要領で探した）:
+  `0x813b: [0x1d48]=0x10`、`0x8142: [0x181e]=1`、`0x814a: [0x20c6]=1`（Full Power）、
+  `0x816d: [0x1d48]=0x10`、`0x8173: [0x1d4a]=0x0a`。**0x813b 前後の関数を読めば
+  各アイテムの効果が確定する**
+* アイテム本体の状態は `DS:0x193e`(x) / `0x1d40`(y) / `0x1db2`(vx) / `0x1db4`(vy=-4) /
+  `0x1d44`(残り時間, -1 で開始) / `0x1dc0`(種別)。
+  種別 9 を倒したときに `FUN_1000_13e0` の中で仕込まれる（`0x1dc0 == 0` のときだけ）
+
+### 3. スコアと HUD
+
+**HUD はグラフィックではなく PC-98 のテキストプレーン。**
+
+* `FUN_1000_be36(row, col, attr, value)` が `(row*0x50 + col + 8) * 2` に書く。
+  0x50 = 80 桁、2 バイト/セルのテキスト VRAM
+* `FUN_1000_bf46(row, col, attr, len)` が同じ場所を消す
+* `FUN_1000_a25a()` = `bf46(0x18, 0x14, 0xe1, 0x30)` + `be36(0x18, 10, 0xe1, score)`。
+  **row 0x18 = 24**、つまり画面最下部（y 384..400）。attr 0xe1
+* 文字は `DEPTH.FNT`（16×16 モノクロ 256 字）を **PC-98 の外字**として上げて
+  2 バイトコードで置いている。`FUN_1000_bc6f` がそのアップロード。
+  だから 16×16 のフォントが別ファイルになっている
+* フォントの中身は `docs/font.png` で確認できる。数字・英大小文字・記号に加えて
+  `st nd rd th 10 Rank Stage` と矢印、`Depth` のロゴ文字
+* 移植では「40×25 の 16×16 文字レイヤをグラフィックの上に重ねる」でよい。
+  `src/video.c` に `scr_text(row, col, str)` を足すのが素直
+
+### 4. 死亡アニメと種別 2/4 のスプライト
+
+* 死亡中（state < 10）の描画は `FUN_1000_85b8`（種別 1/2/4）と
+  `FUN_1000_8562`（種別 3/9）
+* 種別 4 は多パーツ。`decomp/all.c` の 2170〜2200 行目付近に
+  `(aux + 0x12) * 4 + c32base` / `aux * 4 + c32base + 0x49` / `+0x44` `+0x45` /
+  `+0x4a` `+0x4b` / `+0x46` `+0x47` を x, x+0x10, x+0x20, x+0x30 の 2 段で置く形が出ている
+* 種別 2 は `all.c` の同じ switch の `iVar8 != 2` の else 側。まだ読んでいない
+
+### 5. タイマ周期
+
+`DS:0x0dd0` をタイマ割り込みが増やし、`FUN_1000_bb38()` がそれを返す。
+**周期が未確定**で、いまネイティブも WASM も 60Hz 仮置き（17ms）。
+PC-98 の 8253 を叩いている箇所（`out(0x77,..)` / `out(0x71,..)` あたり）を探すか、
+`FUN_1000_9fbc(n)`（n ティック待ち）の呼ばれ方から逆算する。
+640×400 の垂直同期は約 56Hz なのでそのあたりの可能性が高い。
+
+### 6. 海底の色
+
+`FUN_1000_c25e` は GRCG のタイルレジスタでベタ塗りする。どの色になるかは
+`FUN_1000_c312` と `out(0x7c, 0xc0/0xce/0xcd/0xcb/0xc7)` の組み合わせ次第で、
+**まだ確定していない**。いま `src/game.c` の `FLOOR_COL 10` は仮。
+
+### 7. 残り 3 ステージとボス
+
+`0x1fdc`(type 2 SKY, 6,180 B) / `0x383a`(type 3 SPACE, 8,067 B) /
+`0x5818`(type 4 BOSS, 10,278 B)。**どれも 1 本の関数で、Ghidra が jmp 先で
+刻んでいる**（下の「嵌りどころ 3」）。type 1 と同じ並列配列を使うので、
+`src/game.c` の構造をそのまま広げられる。ボスは `DEPTH.BOS`（32×32 × 56 枚）。
+
+### 8. 音
+
+`DEPTH.BGM` が BGMLIB 用の MML テキストで 15 曲、`DEPTH.EFS` が効果音（周波数の並び）。
+**PC-98 内蔵ビープ 1 音**なので矩形波 1 個で正確に再現できる。
+WinDepth 側の `src/smf.c` / `src/synth.c`（MIDI + 波形テーブル）が参考になるが、
+こちらはずっと単純。効果音の番号は `FUN_1000_cff4(n)` の引数で、
+1 = 爆雷投下、2 = 敵の射撃、3 = 敵撃破、4 = 自機被弾、6 = アイテム取得。
+
+### 9. タイトルとネーム入力
+
+`FUN_1000_8ae2()` がタイトル/メニュー（結果は `DS:0x184c`、0 = Exit）。
+`FUN_1000_aa92()` / `FUN_1000_aa44()` がネーム入力とランキング。
+`DEPTH.SCR` は固定長テキストなのでそのまま読み書きできる。
+
+## この作業で刺された罠（同じ轍を踏まないため）
+
+1. **エントロピーだけで packer を判定するな。** `DEPTH.EXE` は非圧縮なのに
+   6.5〜6.8 bit/byte あり、ファイル名も見つからず「パックされている」と誤判定した。
+   実際はファイル名が**小文字**で DGROUP 側にあっただけ。バイト列を直接探せば一発
+2. **planar と packed はサイズが同じ。** BFNT を planar で読むと「色付きの砂嵐」に
+   なり、それらしく壊れるので判断を誤る。4 通り全部 PNG に出して並べるのが早い
+3. **Ghidra の 16bit 出力は push された戻り番地をローカル変数に化けさせる。**
+   `local_14 = 0x103e; ... FUN_1000_ba6a();` の 0x103e が引数だと思い込んだ。
+   引数は機械語から読む（`tools/callsites.py`）
+4. **Ghidra の「関数」は jmp 先を昇格させたもの。** ステージは 1 本の関数。
+   `call` と `jmp` を機械語で数えて確かめる
+5. **`local_2c` は生存数ではなく撃墜数。** 「同時出現数の上限」と読んで、
+   9 匹揃った瞬間に全員が逃げ出すおかしな挙動を作った
+6. **Bash ツールのヒアドキュメントはバックスラッシュを食う。** `
+` が生の改行に
+   なって C の文字列が壊れる。バックスラッシュを含む編集は Edit/Write ツールで
+7. **Windows は大文字小文字を区別しない。** `cp a.mid A.mid` は自分自身へのコピーに
+   なり、続く `rm` が原本を消す（WinDepth 側で一度やった）
+
+## 環境
+
+* Python `C:\Python313\python.exe`、mingw `C:\prog\w64devkit`、
+  emsdk `C:\prog\emsdk\emsdk`（**`emcc.bat` は無く `emcc.exe`**）
+* Ghidra 12.1.3 + JDK 21 を `C:\prog\ghidra` に
+* ビルドは `tools/lowpri.sh` 経由で低優先度（並列コンパイルでデスクトップが固まる）
+* GitHub Pages は `main:/` を配信。`index.html` / `superdepth.js` / `superdepth.wasm` は
+  リポジトリ直下に置く。`.nojekyll` あり
+
+---
 
 ## 対象
 
@@ -416,27 +572,21 @@ if (local_28 <= local_2c) vx = sign(vx) << 3;             /* 達成したら逃�
 6. **ネイティブ** — `src/video.c` の 640×400 8bpp サーフェスを Win32 の DIB で出す
 7. **WASM** — `putImageData` のみ。WebGL 不使用
 
-## 環境
+## Ghidra の再実行
 
-* Ghidra 12.1.3 + JDK 21 を `C:\prog\ghidra` に。再実行:
-  ```sh
-  JAVA_HOME=C:/prog/ghidra/jdk-21.0.12.1+1 \
-  /c/prog/ghidra/ghidra_12.1.3_PUBLIC/support/analyzeHeadless.bat \
-    C:/prog/claude2/super_depth_wasm/ghidra_proj sd \
-    -import C:/prog/claude2/super_depth_wasm/orig/DEPTH.EXE \
-    -scriptPath C:/prog/claude2/super_depth_wasm/tools/ghidra_scripts \
-    -postScript DecompileAll.java C:/prog/claude2/super_depth_wasm/decomp
-  ```
-  プロジェクトディレクトリは事前に mkdir が要る。出力 `decomp/` は git 管理外
-* Python は `C:\Python313\python.exe`、mingw は `C:\prog\w64devkit`、
-  emsdk は `C:\prog\emsdk\emsdk`（`emcc.bat` は無く `emcc.exe`）
-* ビルドは `tools/lowpri.sh` 経由で低優先度
-* GitHub Pages は `main:/` を配信する設定
+`decomp/` はリポジトリにコミットしてあるので普段は不要。作り直すときは:
 
-## 罠（環境側）
+```sh
+JAVA_HOME=C:/prog/ghidra/jdk-21.0.12.1+1 \
+/c/prog/ghidra/ghidra_12.1.3_PUBLIC/support/analyzeHeadless.bat \
+  <repo>/ghidra_proj sd \
+  -import <repo>/orig/DEPTH.EXE \
+  -scriptPath <repo>/tools/ghidra_scripts \
+  -postScript DecompileAll.java <repo>/decomp
+```
 
-* **Bash ツールのヒアドキュメントはバックスラッシュを食う。** `\\n` が生の改行に
-  なって C の文字列リテラルが壊れる、`\\` が `\` になってパスが壊れる、といった
-  形で 3 回刺された。バックスラッシュを含む編集は Edit/Write ツールでやる
-* **Windows は大文字小文字を区別しない。** `cp data/Windepth.mid data/windepth.mid`
-  は同じファイルへのコピーになり、続く `rm` が原本を消す（WinDepth 側で一度やった）
+プロジェクトディレクトリ (`ghidra_proj`) は**事前に mkdir が要る**（無いと即 abort）。
+ローダは `Old-style DOS Executable (MZ)`、言語は `x86:LE:16:Real Mode` が自動で選ばれ、
+239 関数・失敗 0 になる。`ghidra_proj/` だけ git 管理外。
+
+環境と罠は冒頭の「引き継ぎ」にまとめてある。
