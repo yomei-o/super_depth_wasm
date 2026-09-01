@@ -5,3 +5,8 @@
 
 # Scratch: PNG dumps and disassembly snippets while poking at the binary.
 /tmp/
+
+# Build output.
+/tests/*.exe
+/depth.exe
+*.o
