@@ -237,15 +237,16 @@ static void sea_enemy(Game *g, int idx)
         return;
     }
 
-    /* Firing.  Each kind has its own period, and only while on screen. */
-    if (e->x > 0 && e->x < 0x240) {
+    /* Firing.  Each kind has its own period and its own right-hand limit -
+     * 0x240 for 1 and 3, 0x241 for 2 and 4. */
+    {
         int period;
 
         switch (e->kind) {
         case 1:
             period = g->ship * -0x28 + 100;
             if (period > 0 && sd_rand(g) % period == 0 &&
-                g->bullets_live < 0x10) {
+                g->bullets_live < 0x10 && e->x > 0 && e->x < 0x240) {
                 int s = free_bullet(g);
 
                 if (s >= 0) {
@@ -259,7 +260,7 @@ static void sea_enemy(Game *g, int idx)
         case 2:
             period = ((g->ship * -2 + 5) - g->power) * 10;
             if (period > 0 && sd_rand(g) % period == 0 &&
-                g->missiles_live < 8) {
+                g->missiles_live < 8 && e->x > 0 && e->x < 0x241) {
                 int s = free_missile(g);
 
                 if (s >= 0) {
@@ -274,7 +275,7 @@ static void sea_enemy(Game *g, int idx)
         case 3:
             period = ((4 - g->power) - g->ship) * 5;
             if (period > 0 && sd_rand(g) % period == 0 &&
-                g->bullets_live < 0x10) {
+                g->bullets_live < 0x10 && e->x > 0 && e->x < 0x240) {
                 int s = free_bullet(g);
 
                 if (s >= 0) {
@@ -287,7 +288,8 @@ static void sea_enemy(Game *g, int idx)
             break;
         case 4:
             /* A four-shot salvo, once aux has wound up to 4. */
-            if (e->aux == 4 && g->missiles_live < 4) {
+            if (e->aux == 4 && g->missiles_live < 4 &&
+                e->x > 0 && e->x < 0x241) {
                 int k;
 
                 for (k = 0; k < 4; k++) {
@@ -301,8 +303,11 @@ static void sea_enemy(Game *g, int idx)
                     g->missiles_live++;
                 }
                 sd_sfx(g, SFX_ENEMY);
-                e->vx = (sd_rand(g) % 4 + 5) * sd_toward_middle(e->x);
             }
+            /* Its own `if (aux == 4)`, outside the salvo's guards: it starts
+             * moving again whether or not it managed to fire. */
+            if (e->aux == 4)
+                e->vx = (sd_rand(g) % 4 + 5) * sd_toward_middle(e->x);
             break;
         default:
             break;
