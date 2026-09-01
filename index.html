@@ -169,8 +169,10 @@ var Module = {
   }
 };
 
+// once: true would be wrong here - the first key may arrive before the
+// runtime is up, and startAudio can only do its job once it is.
 addEventListener('pointerdown', startAudio);
-addEventListener('keydown', () => startAudio(), { once: true });
+addEventListener('keydown', startAudio);
 addEventListener('keydown', e => {
   if (e.code >= 'Digit1' && e.code <= 'Digit9') {
     Module._sd_set_stage(+e.code.slice(5));
