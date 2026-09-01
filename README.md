@@ -7,7 +7,37 @@ Bio_100% の PC-98 用ゲーム **Super Depth ver 1.00**（1991、alty & tacox�
 Windows 版の続編 **WinDepth** の移植はこちら → https://github.com/yomei-o/windepth_wasm
 （自機の名前 `YAMABOKU` が両方に出てきます）
 
-**現状はまだ解析段階で、動くものはありません。** データ形式はほぼ解けています。
+**まだ移植の途中です。** 動くところまでは来ました。
+
+遊べる（というより見られる）: https://yomei-o.github.io/super_depth_wasm/
+
+できていること: 640×400 16 色の画面、BFNT スプライトの読み込み（238 枚）、
+本物のパレット、自機の移動、爆雷の投下。
+まだ無いもの: 敵、アイテム、ボス、BGM、効果音、タイトル、ネーム入力。
+
+```
+←/→ (H/L)     自機を左右に
+Z / Space     左の爆雷
+X / Enter     右の爆雷
+1..9          ステージ切替
+```
+
+## ビルド
+
+```sh
+sh tools/build.sh          # -> depth.exe（ネイティブ、orig/ を読む）
+sh tools/build_wasm.sh     # -> superdepth.js / superdepth.wasm
+sh tools/build_tests.sh    # -> tests/sheet.exe tests/frames.exe
+```
+
+検証はウィンドウを開かずにできます。
+
+```sh
+./tests/sheet.exe tmp                       # BFNT を読んでシートと画面を PNG に
+./tests/frames.exe tmp/f 20,60 --keys 0x06  # N フレーム走らせて PNG に
+node tests/wasm_check.js 40 tmp/wasm40.png  # WASM 側も同じ絵が出るか
+```
+
 
 ## 対象
 
@@ -33,6 +63,17 @@ Programming : alty
 | `DEPTH.EFS` | 1,737 | 効果音。周波数の並びのテキスト |
 | `DEPTH.SCR` | 291 | スコアランキング（テキスト） |
 | `DEPTH.DOC` `DEPTHBGM.DOC` | | 添付ドキュメント |
+
+## ソース
+
+| ファイル | 役割 |
+|---|---|
+| `src/bfnt.c` `src/bfnt.h` | BFNT を読んでパターン表に積む（原典 `FUN_1000_c8e0`） |
+| `src/video.c` `src/video.h` | 640×400 16 色のサーフェスと描画 |
+| `src/pal.h` | EXE から取り出したパレット |
+| `src/game.c` `src/game.h` | ゲーム本体（解読できた範囲） |
+| `src/main_win32.c` | ネイティブ（8bpp DIB） |
+| `src/main_wasm.c` | Emscripten（`putImageData` のみ、WebGL 不使用） |
 
 ## ツール
 
