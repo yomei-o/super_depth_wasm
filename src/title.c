@@ -84,7 +84,9 @@ void title_start(Game *g)
 
     g->state = GS_TITLE;
     g->menu_sel = 0;
-    g->menu_trig = 1;
+    /* Whatever button got here is probably still down; the latch below makes
+     * it be let go of before the menu answers. */
+    g->menu_trig = 0;
     g->credit = 0;
     g->credit_step = 0;
     g->px = 0x120;
