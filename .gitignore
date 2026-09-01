@@ -1,0 +1,7 @@
+# Ghidra output and project - big, machine-generated, and reproducible with the
+# command in RESUME.md.
+/decomp/
+/ghidra_proj/
+
+# Scratch: PNG dumps and disassembly snippets while poking at the binary.
+/tmp/
