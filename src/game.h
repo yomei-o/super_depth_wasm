@@ -103,7 +103,8 @@ typedef enum {
     GS_FLASH_UP,     /* FUN_1000_83b5(0x2b8), the flush bomb going off */
     GS_FLASH_DOWN,   /* FUN_1000_8425(0x2b8) */
     GS_FADE_OUT,     /* FUN_1000_84ae, on death */
-    GS_OVER          /* FUN_1000_a29e; the original goes to the name entry here */
+    GS_OVER,         /* FUN_1000_a29e; the original goes to the name entry here */
+    GS_END           /* FUN_1000_95a4, a boss going down, src/ending.c */
 } GameState;
 
 typedef struct Stage Stage;
@@ -150,6 +151,7 @@ typedef struct Game {
 
     /* Which of the between-stage animations is running, and how far in. */
     int cut_kind, cut_step;
+    int end_phase, end_step, end_item;  /* FUN_1000_95a4, src/ending.c */
     int record_score;     /* the ranking screen is showing the run's score */
 
     /* The name entry: which row of the table is being filled in, where the
@@ -230,6 +232,14 @@ void name_tick(Game *g);
  * when a stage of type 2, 3 or 4 is entered for the first time. */
 void cut_start(Game *g, int kind);
 void cut_tick(Game *g);
+
+/* src/ending.c - FUN_1000_95a4, what a boss going down runs: a jingle for
+ * stages 4 and 8, and the whole ending for stage 12. */
+void ending_start(Game *g);
+void ending_tick(Game *g);
+
+/* stage_boss.c's DS:0x0bd6 wave table, which the cast list borrows. */
+const signed char *sd_warp_table(void);
 void game_stage_start(Game *g, int stage);
 void game_tick(Game *g);
 

@@ -50,6 +50,9 @@ void scr_palette_flash(Screen *s, const unsigned char table[16][3], int level);
 /* Draw pattern `id` with its top-left at (x,y), clipped, treating index 0 as
  * transparent - the sprite path (FUN_1000_c788). */
 void scr_pat(Screen *s, int x, int y, int id);
+/* As scr_pat but every pixel becomes a scale x scale block - FUN_1000_c788's
+ * third argument. */
+void scr_pat_scale(Screen *s, int x, int y, int id, int scale);
 /* As scr_pat but index 0 is written too, for backgrounds. */
 void scr_pat_opaque(Screen *s, int x, int y, int id);
 

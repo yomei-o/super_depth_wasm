@@ -49,8 +49,10 @@ void cut_start(Game *g, int kind)
         /* FUN_1000_908c.  Song 9 is SEA CLEAR and does not loop. */
         sd_music(g, SND_SEA_CLEAR, 0);
         msg(g, 10, 0x22, 0xc1, "Clear!");    /* FUN_1000_a090 */
-        if (!g_vram)
-            g_vram = (Screen *)malloc(sizeof *g_vram);
+        /* If a stage was jumped into mid-animation the old one is still
+         * held; nothing else frees it. */
+        free(g_vram);
+        g_vram = (Screen *)malloc(sizeof *g_vram);
         if (g_vram) {
             scr_init(g_vram, g->bank);
             memcpy(g_vram->pal, g->scr->pal, sizeof g_vram->pal);

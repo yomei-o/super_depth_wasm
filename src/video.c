@@ -103,4 +103,42 @@ static void blit(Screen *s, int x, int y, int id, int opaque)
 }
 
 void scr_pat(Screen *s, int x, int y, int id)        { blit(s, x, y, id, 0); }
+
+/* FUN_1000_c788's third argument replicates every pixel into a square that
+ * many across, which is how the ending's cast list gets 64-pixel portraits out
+ * of the same 32-pixel patterns the stages use. */
+void scr_pat_scale(Screen *s, int x, int y, int id, int scale)
+{
+    const Pattern *p;
+    int row, col, dx, dy;
+
+    if (scale < 2) {
+        blit(s, x, y, id, 0);
+        return;
+    }
+    if (!s->bank || id < 0 || id >= s->bank->count)
+        return;
+    p = &s->bank->pat[id];
+    if (!p->px)
+        return;
+    for (row = 0; row < p->h; row++)
+        for (col = 0; col < p->w; col++) {
+            unsigned char c = p->px[(long)row * p->w + col];
+
+            if (!c)
+                continue;
+            for (dy = 0; dy < scale; dy++) {
+                int py = y + row * scale + dy;
+
+                if (py < 0 || py >= SCR_H)
+                    continue;
+                for (dx = 0; dx < scale; dx++) {
+                    int px = x + col * scale + dx;
+
+                    if (px >= 0 && px < SCR_W)
+                        s->px[(long)py * SCR_W + px] = c;
+                }
+            }
+        }
+}
 void scr_pat_opaque(Screen *s, int x, int y, int id) { blit(s, x, y, id, 1); }

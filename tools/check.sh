@@ -7,6 +7,7 @@
 #   * all three builds compile
 #   * the twelve stages, the title and the ranking screen all draw
 #   * a long unattended run gets through the stages instead of stalling
+#   * clearing stage 12 plays the ending out to the end
 #     (this is how the boss-less type 4 was caught hanging for ever)
 #   * the WASM build draws the same pixels as the native one
 #   * the music and the effects come out of the synth
@@ -34,6 +35,18 @@ echo "ok"
 
 echo "== the stages keep advancing (no stall) =="
 ./tests/frames.exe tmp/check/soak 1000,6000,12000,18000 --auto --god --bossweak
+
+echo "== the ending =="
+# Clearing stage 12 runs FUN_1000_95a4 the whole way: the jingle, the fly-past
+# past the planet, the eighteen-strong cast list and the credits, and then the
+# game carries on at stage 1.  --trace says which of those it got to.
+./tests/frames.exe tmp/check/end 445,1800 --stage 12 --auto --god --bossweak     --quiet --trace > tmp/check/end.log
+cat tmp/check/end.log
+for want in "phase=1" "phase=2" "phase=3" "phase=4" "play stage=1"; do
+    grep -q "$want" tmp/check/end.log || {
+        echo "the ending stopped before $want" >&2; exit 1; }
+done
+echo "ok"
 
 echo "== sound =="
 ./tests/tune.exe list | head -1

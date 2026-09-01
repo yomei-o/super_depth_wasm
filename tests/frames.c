@@ -4,6 +4,7 @@
  *   frames <out-prefix> <tick>[,<tick>...] [--keys MASK] [--tap N] [--auto]
  *                                    [--god] [--bossweak]
  *                                    [--record] [--name] [--fresh] [--quiet]
+ *                                    [--trace]
  *                                    [--wav OUT.WAV]
  *                                    [--stage N]
  *
@@ -145,6 +146,7 @@ int main(int argc, char **argv)
     int want[64], nwant = 0, maxtick = 0, base[4], i, t;
     unsigned keys = 0;
     int tap = 0, quiet = 0, auto_play = 0, god = 0, start_stage = 0;
+    int trace = 0, last_state = -1, last_phase = -1;
     int boss_weak = 0, record = 0, fresh = 0, name_entry = 0;
     const char *prefix = argc > 1 ? argv[1] : "tmp/f";
 
@@ -175,6 +177,8 @@ int main(int argc, char **argv)
             name_entry = 1;
         else if (!strcmp(argv[i], "--quiet"))
             quiet = 1;
+        else if (!strcmp(argv[i], "--trace"))
+            trace = 1;
         else if (!strcmp(argv[i], "--wav") && i + 1 < argc)
             wav = argv[++i];
         else if (!strcmp(argv[i], "--stage") && i + 1 < argc)
@@ -252,6 +256,22 @@ int main(int argc, char **argv)
         if (auto_play)
             game.pad = autopilot(&game, t);
         game_tick(&game);
+        /* --trace prints every state change, so a run can be checked for
+         * having actually got somewhere rather than just not crashing. */
+        if (trace && ((int)game.state != last_state ||
+                      (game.state == GS_END && game.end_phase != last_phase))) {
+            static const char *const NAME[] = {
+                "title", "record", "cut", "name", "fade-in", "play",
+                "flash-up", "flash-down", "fade-out", "over", "end"
+            };
+
+            last_state = (int)game.state;
+            last_phase = game.end_phase;
+            printf("t=%-6d %s", t, NAME[last_state]);
+            if (game.state == GS_END)
+                printf(" phase=%d", game.end_phase);
+            printf(" stage=%d\n", game.stage);
+        }
         for (i = 0; i < nwant; i++)
             if (want[i] == t) {
                 char path[512];

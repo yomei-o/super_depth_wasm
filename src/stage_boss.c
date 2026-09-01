@@ -65,6 +65,13 @@ static const signed char BOSS_WARP[0x160] = {
      -33,  -31,  -29,  -26,  -24,  -22,  -20
 };
 
+/* The ending's cast list draws the snake on the same wave. */
+const signed char *sd_warp_table(void)
+{
+    return BOSS_WARP;
+}
+
+
 static int which_boss(const Game *g) { return g->stage / 4; }
 
 /* ---------------------------------------------------------------- start-up */

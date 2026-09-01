@@ -603,6 +603,11 @@ static void leave_stage(Game *g)
         g->fade_ticks = 0;
         return;
     }
+    /* FUN_1000_5818 ends with FUN_1000_95a4 when a boss has just gone down. */
+    if (g->stage_ops && g->stage_ops->type == 4) {
+        ending_start(g);
+        return;
+    }
     g->last_stage = g->stage;
     game_stage_start(g, g->stage < SD_STAGES ? g->stage + 1 : 1);
 }
@@ -637,6 +642,9 @@ void game_tick(Game *g)
         return;
     case GS_NAME:
         name_tick(g);
+        return;
+    case GS_END:
+        ending_tick(g);
         return;
     case GS_FADE_IN:
         scr_palette_fade(g->scr, g->pal, g->fade_step);
