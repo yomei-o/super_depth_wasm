@@ -13,22 +13,33 @@ Windows 版の続編 **WinDepth** の移植はこちら → https://github.com/y
 
 遊べる（というより見られる）: https://yomei-o.github.io/super_depth_wasm/
 
-できていること: **type 1 (SEA) の面が一通り遊べます。**
+できていること: **SEA / SKY / SPACE の 3 種類の面が遊べて、音も鳴ります。**
 640×400 16 色の画面と本物のパレット（毎フレームの色替えも）、BFNT スプライト
-238 枚、自機と左右 2 門の爆雷、敵 5 種の湧き・移動・射撃・撃墜と爆発、
-追尾する敵ミサイル、アイテム 7 種とフラッシュボム、
-PC-98 のテキストプレーンによる HUD（スコア・残機・枠・メッセージ）、
-面クリアと死亡の遷移、フェード。コマ数も原典どおり（VSYNC 5 回に 1 コマ＝毎秒 11）。
+238 枚、敵 5 種の湧き・移動・射撃・撃墜と爆発、アイテム 7 種とフラッシュボム、
+PC-98 のテキストプレーンによる HUD（スコア・残機・枠・レーダー・メッセージ）、
+面クリアと死亡の遷移、フェード、BGM 15 曲と効果音 6 種（内蔵ビープ 1 音）。
+コマ数も原典どおり（VSYNC 5 回に 1 コマ＝毎秒 11）。
 
-まだ無いもの: 残り 3 種類のステージ（SKY / SPACE / BOSS）とボス、
-BGM、効果音、タイトル、ネーム入力。
+面の中身は種別ごとにまるごと違います。
+
+| 種別 | 中身 |
+|---|---|
+| 1 SEA | 海。自機は水面を左右に動き、左右 2 門の爆雷を沈める |
+| 2 SKY | 空。自機は画面下で上へ撃つ。敵は上から降りてきて爆弾を落とす |
+| 3 SPACE | 宇宙。自機は上下に動いて左右へ撃つ。左右キーで世界のほうが流れる |
+| 4 BOSS | **まだ**（ステージ 4 / 8 / 12。いまは SEA のロジックで動きます） |
+
+まだ無いもの: ボス面、面と面のあいだの演出、タイトル、ネーム入力。
 
 ```
 ←/→ (H/L)     自機を左右に
-Z / Space     左の爆雷
-X / Enter     右の爆雷
+↑/↓ (K/J)     上下に（SPACE 面だけ）
+Z / Space     左
+X / Enter     右
 1..9          ステージ切替
 ```
+
+音はブラウザの都合で、最初にキーを押すかクリックしたときに出ます。
 
 ## ビルド
 
@@ -85,7 +96,9 @@ Programming : alty
 | `src/pal.h` | EXE から取り出したパレット |
 | `src/text.c` `src/text.h` | PC-98 のテキストプレーン。`DEPTH.FNT` の外字で HUD を出す |
 | `src/tables.h` | EXE から取り出した得点表と敵の編成表 |
-| `src/game.c` `src/game.h` | ゲーム本体（解読できた範囲） |
+| `src/sound.c` `src/sound.h` | BGMLIB の MML と効果音を矩形波 1 音で |
+| `src/game.c` `src/game.h` `src/gameint.h` | 面の種別に共通な部分とフレームの骨格 |
+| `src/stage_sea.c` `src/stage_sky.c` `src/stage_space.c` | 面 1 本ずつ |
 | `src/main_win32.c` | ネイティブ（8bpp DIB） |
 | `src/main_wasm.c` | Emscripten（`putImageData` のみ、WebGL 不使用） |
 
@@ -123,8 +136,10 @@ python tools/bfnt.py orig/DEPTH.C32 tmp/c32.png --zoom 2 --cols 8
 
 `tests/frames.exe` が書き出したそのままのものです。
 
-![stage 1](docs/screen_stage1.png)
-![stage 1](docs/screen_stage1_b.png)
+![SEA](docs/screen_stage1.png)
+![SEA](docs/screen_stage1_b.png)
+![SKY](docs/screen_stage2.png)
+![SPACE](docs/screen_stage3.png)
 
 ## わかっていること
 
@@ -204,9 +219,9 @@ WinDepth には無いパワーアップが一通りあります。
 7. ~~スコア表示~~ 済 — PC-98 のテキストプレーン + `DEPTH.FNT` の外字（`src/text.c`）
 8. ~~クリア／死亡の遷移~~ 済 — 出口は `FUN_1000_13e0` の先頭にあった
 9. ~~フレーム間隔~~ 済 — `DS:0x0dd0` は VSYNC のカウンタ。VSYNC/5 ＝ 毎秒 11 コマ
-10. BGM（BGMLIB の MML を矩形波 1 音で）と効果音
-11. 残り 3 ステージとボス
-12. タイトルとネーム入力
+10. ~~BGM と効果音~~ 済 — `src/sound.c`（8253 の割り込みごと再現）
+11. ~~種別 2 (SKY) と 3 (SPACE)~~ 済
+12. 種別 4（ボス面）、面と面のあいだの演出、タイトル、ネーム入力
 
 **具体的な次の手順・判明しているアドレス・踏んだ罠は
 [RESUME.md](RESUME.md) の冒頭「引き継ぎ」にまとめてあります。**
