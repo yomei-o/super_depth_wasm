@@ -668,7 +668,7 @@ static void pause_tick(Game *g)
 
 /* Advance a fade by one game frame's worth of VSYNC ticks.  Returns non-zero
  * once it has run out of steps. */
-static int fade_advance(Game *g, int cost, int dir, int last)
+int sd_fade_advance(Game *g, int cost, int dir, int last)
 {
     g->fade_ticks += g->wait;
     while (g->fade_ticks >= cost) {
@@ -706,7 +706,7 @@ void game_tick(Game *g)
     case GS_FADE_IN:
         scr_palette_fade(g->scr, g->pal, g->fade_step);
         draw_all(g);
-        if (fade_advance(g, 2, 1, 15)) {
+        if (sd_fade_advance(g, 2, 1, 15)) {
             g->state = GS_PLAY;
             scr_palette(g->scr, g->pal);
         }
@@ -714,13 +714,13 @@ void game_tick(Game *g)
     case GS_FLASH_UP:
         scr_palette_flash(g->scr, g->pal, g->fade_step);
         draw_all(g);
-        if (fade_advance(g, 1, 1, 15))
+        if (sd_fade_advance(g, 1, 1, 15))
             g->state = GS_FLASH_DOWN;
         return;
     case GS_FLASH_DOWN:
         scr_palette_flash(g->scr, g->pal, g->fade_step);
         draw_all(g);
-        if (fade_advance(g, 1, -1, 0)) {
+        if (sd_fade_advance(g, 1, -1, 0)) {
             g->state = GS_PLAY;
             scr_palette(g->scr, g->pal);
         }
@@ -728,7 +728,7 @@ void game_tick(Game *g)
     case GS_FADE_OUT:
         scr_palette_fade(g->scr, g->pal, g->fade_step);
         draw_all(g);
-        if (fade_advance(g, 2, -1, 0)) {
+        if (sd_fade_advance(g, 2, -1, 0)) {
             /* A life was lost, so the same stage comes round again. */
             g->last_stage = g->stage;
             game_stage_start(g, g->stage);

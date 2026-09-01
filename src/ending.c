@@ -22,7 +22,6 @@ enum { EP_CLEAR, EP_PLANET, EP_TEXT, EP_CAST, EP_CREDITS };
 
 #define CAST_N     18
 #define CAST_HOLD  0x19    /* frames each one is held for */
-#define CAST_FADE  16      /* FUN_1000_82d7 / _8347, 16 steps each */
 #define PLANET_N   200
 #define TEXT_HOLD  300
 
@@ -254,18 +253,26 @@ void ending_tick(Game *g)
             g->end_phase = EP_CAST;
             g->end_step = 0;
             g->end_item = 0;
+            g->end_sub = 0;
+            g->fade_step = 0;
+            g->fade_ticks = 0;
             txt_puts(&g->txt, 0x14, 0x18, 0xe1, CAST[0].name);
         }
         return;
     case EP_CAST:
-        /* FUN_1000_82d7, 25 frames, FUN_1000_8347 - one portrait at a time. */
-        if (g->end_step <= CAST_FADE) {
-            scr_palette_fade(g->scr, g->pal, g->end_step - 1);
-        } else if (g->end_step > CAST_FADE + CAST_HOLD) {
-            int back = g->end_step - CAST_FADE - CAST_HOLD;
-
-            scr_palette_fade(g->scr, g->pal, back > 15 ? 0 : 15 - back);
-        } else {
+        /* FUN_1000_82d7, 25 frames, FUN_1000_8347 - one portrait at a time.
+         * The two fades are sixteen steps of two VSYNC ticks each, not of one
+         * frame each: a frame costs g->wait ticks, so on a boss stage they are
+         * half as long as the frame count would suggest. */
+        switch (g->end_sub) {
+        case 0:
+            scr_palette_fade(g->scr, g->pal, g->fade_step);
+            if (sd_fade_advance(g, 2, 1, 15)) {
+                g->end_sub = 1;
+                g->end_step = 0;
+            }
+            break;
+        case 1:
             /* The same wobble on 2, 4 and 6 that a stage runs. */
             g->pal[2][0] = (unsigned char)(g->page * 2 + 0xd);
             g->pal[2][1] = 0; g->pal[2][2] = 0;
@@ -275,12 +282,26 @@ void ending_tick(Game *g)
             g->pal[4][0] = 0; g->pal[4][1] = 0xf;
             g->pal[4][2] = (unsigned char)(g->page << 3);
             scr_palette(g->scr, g->pal);
+            if (g->end_step >= CAST_HOLD) {
+                g->end_sub = 2;
+                g->fade_step = 15;
+                g->fade_ticks = 0;
+                txt_puts(&g->txt, 0x14, 0x18, 0xe1, "                  ");
+            }
+            break;
+        default:
+            scr_palette_fade(g->scr, g->pal, g->fade_step);
+            if (sd_fade_advance(g, 2, -1, 0))
+                g->end_sub = 3;
+            break;
         }
         cast_draw(g, g->end_item);
         g->page ^= 1;
-        if (g->end_step >= CAST_FADE * 2 + CAST_HOLD) {
+        if (g->end_sub == 3) {
+            g->end_sub = 0;
             g->end_step = 0;
-            txt_puts(&g->txt, 0x14, 0x18, 0xe1, "                  ");
+            g->fade_step = 0;
+            g->fade_ticks = 0;
             if (++g->end_item >= CAST_N) {
                 txt_clear(&g->txt);
                 /* Rows 8, 11, 14, 17 and 20 - the loop stops before 23. */

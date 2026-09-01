@@ -159,7 +159,7 @@ typedef struct Game {
 
     /* Which of the between-stage animations is running, and how far in. */
     int cut_kind, cut_step;
-    int end_phase, end_step, end_item;  /* FUN_1000_95a4, src/ending.c */
+    int end_phase, end_step, end_item, end_sub;  /* FUN_1000_95a4 */
     int pause_esc, pause_q;   /* FUN_1000_9e70's two "let go of it first" flags */
     int quit;                 /* DS:0x184c went to 0 - see the note in game.c */
     int record_score;     /* the ranking screen is showing the run's score */
@@ -246,6 +246,10 @@ void cut_tick(Game *g);
 
 /* src/ending.c - FUN_1000_95a4, what a boss going down runs: a jingle for
  * stages 4 and 8, and the whole ending for stage 12. */
+/* One game frame's worth of VSYNC ticks against a fade that costs `cost`
+ * ticks a step.  Returns non-zero once it has reached `last`. */
+int sd_fade_advance(Game *g, int cost, int dir, int last);
+
 void ending_start(Game *g);
 void ending_tick(Game *g);
 
