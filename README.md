@@ -91,13 +91,21 @@ python tools/lzh.py DEPTH100.LZH orig     # 展開
 python tools/bfnt.py orig/DEPTH.C32 tmp/c32.png --zoom 2 --cols 8
 ```
 
-出力例が `docs/` にあります（色は PC-98 の初期パレットなので本来の色ではありません）。
+出力例が `docs/` にあります。
 
 | | |
 |---|---|
 | ![C32](docs/sprites_c32.png) | `DEPTH.C32` |
 | ![C16](docs/sprites_c16.png) | `DEPTH.C16` |
 | ![BOS](docs/sprites_bos.png) | `DEPTH.BOS` |
+| ![FNT](docs/font.png) | `DEPTH.FNT`（HUD の文字。PC-98 の外字として使われる） |
+
+## 今の画面
+
+`tests/frames.exe` が書き出したそのままのものです。
+
+![stage 1](docs/screen_stage1.png)
+![stage 1](docs/screen_stage1_b.png)
 
 ## わかっていること
 
