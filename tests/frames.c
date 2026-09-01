@@ -4,7 +4,11 @@
  *   frames <out-prefix> <tick>[,<tick>...] [--keys MASK] [--tap N] [--auto]
  *                                    [--god] [--bossweak]
  *                                    [--record] [--name] [--fresh] [--quiet]
- *                                    [--trace]
+ *                                    [--trace] [--keys2 MASK --at N]
+ *
+ * --keys2 with --at swaps the held keys over part way through, which is the
+ * only way to exercise anything that wants a key let go of - the pause, for
+ * one.
  *                                    [--wav OUT.WAV]
  *                                    [--stage N]
  *
@@ -147,6 +151,8 @@ int main(int argc, char **argv)
     unsigned keys = 0;
     int tap = 0, quiet = 0, auto_play = 0, god = 0, start_stage = 0;
     int trace = 0, last_state = -1, last_phase = -1;
+    unsigned keys2 = 0;
+    int keys2_at = -1;
     int boss_weak = 0, record = 0, fresh = 0, name_entry = 0;
     const char *prefix = argc > 1 ? argv[1] : "tmp/f";
 
@@ -177,6 +183,10 @@ int main(int argc, char **argv)
             name_entry = 1;
         else if (!strcmp(argv[i], "--quiet"))
             quiet = 1;
+        else if (!strcmp(argv[i], "--keys2") && i + 1 < argc)
+            keys2 = (unsigned)strtoul(argv[++i], NULL, 0);
+        else if (!strcmp(argv[i], "--at") && i + 1 < argc)
+            keys2_at = atoi(argv[++i]);
         else if (!strcmp(argv[i], "--trace"))
             trace = 1;
         else if (!strcmp(argv[i], "--wav") && i + 1 < argc)
@@ -250,7 +260,7 @@ int main(int argc, char **argv)
                 pcmn += n;
             }
         }
-        game.pad = keys;
+        game.pad = (keys2_at >= 0 && t >= keys2_at) ? keys2 : keys;
         if (tap > 0 && (t / tap) % 2)
             game.pad &= ~(unsigned)(PAD_A | PAD_B);
         if (auto_play)
@@ -262,7 +272,7 @@ int main(int argc, char **argv)
                       (game.state == GS_END && game.end_phase != last_phase))) {
             static const char *const NAME[] = {
                 "title", "record", "cut", "name", "fade-in", "play",
-                "flash-up", "flash-down", "fade-out", "over", "end"
+                "flash-up", "flash-down", "fade-out", "over", "end", "pause"
             };
 
             last_state = (int)game.state;
@@ -271,6 +281,11 @@ int main(int argc, char **argv)
             if (game.state == GS_END)
                 printf(" phase=%d", game.end_phase);
             printf(" stage=%d\n", game.stage);
+        }
+        if (game.quit) {
+            /* DS:0x184c went to 0.  depth.exe closes its window here. */
+            printf("t=%-6d quit\n", t);
+            break;
         }
         for (i = 0; i < nwant; i++)
             if (want[i] == t) {

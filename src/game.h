@@ -48,6 +48,8 @@
 #define PAD_B     0x08
 #define PAD_UP    0x10
 #define PAD_DOWN  0x20
+#define PAD_PAUSE 0x40    /* ESC - FUN_1000_9e70 */
+#define PAD_QUIT  0x80    /* Q */
 
 /* The playfield is wider than the screen: enemies live 320px off each edge and
  * are dropped once past -0x140 / 0x380. */
@@ -104,7 +106,8 @@ typedef enum {
     GS_FLASH_DOWN,   /* FUN_1000_8425(0x2b8) */
     GS_FADE_OUT,     /* FUN_1000_84ae, on death */
     GS_OVER,         /* FUN_1000_a29e; the original goes to the name entry here */
-    GS_END           /* FUN_1000_95a4, a boss going down, src/ending.c */
+    GS_END,          /* FUN_1000_95a4, a boss going down, src/ending.c */
+    GS_PAUSE         /* FUN_1000_9e70 */
 } GameState;
 
 typedef struct Stage Stage;
@@ -152,6 +155,8 @@ typedef struct Game {
     /* Which of the between-stage animations is running, and how far in. */
     int cut_kind, cut_step;
     int end_phase, end_step, end_item;  /* FUN_1000_95a4, src/ending.c */
+    int pause_esc, pause_q;   /* FUN_1000_9e70's two "let go of it first" flags */
+    int quit;                 /* DS:0x184c went to 0 - see the note in game.c */
     int record_score;     /* the ranking screen is showing the run's score */
 
     /* The name entry: which row of the table is being filled in, where the

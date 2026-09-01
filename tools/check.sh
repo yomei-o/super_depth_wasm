@@ -8,6 +8,7 @@
 #   * the twelve stages, the title and the ranking screen all draw
 #   * a long unattended run gets through the stages instead of stalling
 #   * clearing stage 12 plays the ending out to the end
+#   * ESC pauses, a direction key resumes, Q quits
 #     (this is how the boss-less type 4 was caught hanging for ever)
 #   * the WASM build draws the same pixels as the native one
 #   * the music and the effects come out of the synth
@@ -35,6 +36,20 @@ echo "ok"
 
 echo "== the stages keep advancing (no stall) =="
 ./tests/frames.exe tmp/check/soak 1000,6000,12000,18000 --auto --god --bossweak
+
+echo "== the pause =="
+# FUN_1000_9e70: ESC holds the game still, a direction key lets it go again,
+# and Q from inside the pause ends the run and the program.
+./tests/frames.exe tmp/check/pause 40 --stage 1 --keys 0x40 --keys2 0x01     --at 20 --quiet --trace > tmp/check/pause.log
+./tests/frames.exe tmp/check/quit 40 --stage 1 --keys 0x40 --keys2 0x80     --at 20 --quiet --trace > tmp/check/quit.log
+cat tmp/check/pause.log tmp/check/quit.log
+grep -q "pause stage=1" tmp/check/pause.log || {
+    echo "ESC did not pause" >&2; exit 1; }
+grep -q "t=20     play" tmp/check/pause.log || {
+    echo "the pause did not let go" >&2; exit 1; }
+grep -q "quit" tmp/check/quit.log || {
+    echo "Q did not quit out of the pause" >&2; exit 1; }
+echo "ok"
 
 echo "== the ending =="
 # Clearing stage 12 runs FUN_1000_95a4 the whole way: the jingle, the fly-past

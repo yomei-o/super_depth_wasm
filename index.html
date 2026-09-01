@@ -41,7 +41,8 @@
   <kbd>Z</kbd>/<kbd>Space</kbd> 左 &nbsp;
   <kbd>X</kbd>/<kbd>Enter</kbd> 右 &nbsp;
   <kbd>1</kbd>…<kbd>9</kbd> ステージ切替<br>
-  タイトルは <kbd>&uarr;</kbd><kbd>&darr;</kbd> で選んで <kbd>Z</kbd> で決定
+  タイトルは <kbd>&uarr;</kbd><kbd>&darr;</kbd> で選んで <kbd>Z</kbd> で決定<br>
+  ゲーム中 <kbd>ESC</kbd>/<kbd>Q</kbd> でポーズ、ポーズ中に <kbd>Q</kbd> で中断
 </div>
 <div class="keys">音はブラウザの都合で、最初にキーを押すかクリックしたときに出ます。</div>
 <div id="status">読み込み中…</div>
@@ -66,7 +67,8 @@
 </div>
 
 <script>
-const PAD = { LEFT: 1, RIGHT: 2, A: 4, B: 8, UP: 16, DOWN: 32 };
+const PAD = { LEFT: 1, RIGHT: 2, A: 4, B: 8, UP: 16, DOWN: 32,
+              PAUSE: 64, QUIT: 128 };
 const KEYMAP = {
   ArrowLeft: PAD.LEFT,  KeyH: PAD.LEFT,
   ArrowRight: PAD.RIGHT, KeyL: PAD.RIGHT,
@@ -74,6 +76,7 @@ const KEYMAP = {
   ArrowDown: PAD.DOWN, KeyJ: PAD.DOWN,
   KeyZ: PAD.A, Space: PAD.A,
   KeyX: PAD.B, Enter: PAD.B,
+  Escape: PAD.PAUSE, KeyQ: PAD.QUIT,
 };
 
 const cv = document.getElementById('screen');

@@ -101,6 +101,8 @@ static const struct { unsigned mask; int vk; } g_keys[] = {
     { PAD_DOWN,  VK_DOWN },  { PAD_DOWN,  'J' },
     { PAD_A,     'Z' },      { PAD_A,     VK_SPACE },
     { PAD_B,     'X' },      { PAD_B,     VK_RETURN },
+    { PAD_PAUSE, VK_ESCAPE },
+    { PAD_QUIT,  'Q' },
     { 0, 0 }
 };
 
@@ -155,6 +157,12 @@ static LRESULT CALLBACK wndproc(HWND h, UINT msg, WPARAM wp, LPARAM lp)
 
         read_input();
         game_tick(&g_game);
+        if (g_game.quit) {
+            /* DS:0x184c went to 0 - the original returns to DOS. */
+            ReleaseDC(h, hdc);
+            DestroyWindow(h);
+            return 0;
+        }
         audio_pump();
         present(hdc);
         ReleaseDC(h, hdc);
@@ -174,8 +182,8 @@ static LRESULT CALLBACK wndproc(HWND h, UINT msg, WPARAM wp, LPARAM lp)
         return 0;
     }
     case WM_KEYDOWN:
-        if (wp == VK_ESCAPE)
-            DestroyWindow(h);
+        /* ESC is the game's pause and Q its quit, so neither closes the
+         * window here; the window does that when the game raises g->quit. */
         if (wp >= '1' && wp <= '9')
             game_stage_start(&g_game, (int)(wp - '0'));
         return 0;

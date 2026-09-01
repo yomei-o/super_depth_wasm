@@ -100,6 +100,7 @@ void snd_free(SndData *d);
 void snd_init(Snd *s, const SndData *d);
 void snd_play(Snd *s, int song);      /* FUN_1000_cf6a + FUN_1000_cf44 */
 void snd_stop(Snd *s);                /* FUN_1000_cf2c */
+void snd_resume(Snd *s);              /* FUN_1000_cf44 on its own */
 void snd_effect(Snd *s, int n);       /* FUN_1000_cff4 */
 
 /* Render `frames` samples of signed 16-bit mono at SND_RATE. */

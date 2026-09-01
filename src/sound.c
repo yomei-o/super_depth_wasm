@@ -449,6 +449,14 @@ void snd_stop(Snd *s)
         beep_off(s);
 }
 
+/* The pause stops the music with FUN_1000_cf2c and starts it again with
+ * FUN_1000_cf44 alone, so the song picks up where it was left. */
+void snd_resume(Snd *s)
+{
+    if (s->song)
+        s->playing = 1;
+}
+
 void snd_effect(Snd *s, int n)
 {
     if (!s->data || !s->data->loaded || n < 1 || n > s->data->effects)

@@ -11,9 +11,11 @@
  * of DEPTH.FNT characters uploaded as PC-98 user-defined characters, which is
  * what the bottom half of docs/font.png is.
  *
- * "Record" opens the ranking screen (src/record.c).  "Exit" does nothing: it
- * quits to DOS, which a port has nowhere to do, so it is left alone rather
- * than given an invented meaning.
+ * "Record" opens the ranking screen (src/record.c).  "Exit" - and ESC or Q,
+ * which FUN_1000_8ae2 sends to the same place - puts DS:0x184c to 0, which
+ * makes FUN_1000_0011 return to DOS.  Here it raises g->quit and leaves it to
+ * the front end: depth.exe closes its window, the page has nowhere to go and
+ * ignores it.
  */
 #include "gameint.h"
 #include "pal.h"
@@ -225,8 +227,13 @@ void title_tick(Game *g)
             game_stage_start(g, 1);
             return;
         }
-        /* Record and Exit are not written; see the note at the top. */
+        /* FUN_1000_8ae2's LAB_1000_8cb9: Exit puts DS:0x184c to 0, which
+         * makes FUN_1000_0011 return. */
+        g->quit = 1;
     }
+    /* Line 103 of the same function: ESC or Q does the same thing from here. */
+    if (g->pad & (PAD_PAUSE | PAD_QUIT))
+        g->quit = 1;
     if ((g->pad & PAD_UP) && g->menu_trig) {
         if (--g->menu_sel < 0)
             g->menu_sel = 2;

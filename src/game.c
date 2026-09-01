@@ -612,6 +612,59 @@ static void leave_stage(Game *g)
     game_stage_start(g, g->stage < SD_STAGES ? g->stage + 1 : 1);
 }
 
+/* FUN_1000_9e70, reached from the top of every stage loop when ESC or Q is
+ * down.  The screen is left exactly as it was; only the two lines of text and
+ * the music change.
+ *
+ * Q ends the run and the program (DS:0x1842 and DS:0x184c both go to 0, and
+ * FUN_1000_0011 returns).  A port has nothing to return to, so the state
+ * machine goes back to the title and raises g->quit; what that means is the
+ * front end's business - depth.exe closes its window, the page ignores it.
+ */
+static void pause_start(Game *g)
+{
+    g->state = GS_PAUSE;
+    g->pause_esc = 0;
+    g->pause_q = 0;
+    /* White is invisible against the sky, so type 2 gets blue instead. */
+    txt_puts(&g->txt, 8, 0x24, g->type == 2 ? 1 : 0xe1, "PAUSE");
+    txt_puts(&g->txt, 0xf, 0x18, 0xc3, "Push 'Q' to Quit");
+    txt_draw(&g->txt, g->scr);
+    if (g->snd)
+        snd_stop(g->snd);                /* FUN_1000_cf2c */
+}
+
+static void pause_clear(Game *g)
+{
+    txt_puts(&g->txt, 8, 0x24, 0xc1, "     ");
+    txt_puts(&g->txt, 0xf, 0x18, 0xc1, "                ");
+}
+
+static void pause_tick(Game *g)
+{
+    unsigned other = g->pad & (PAD_LEFT | PAD_RIGHT | PAD_UP | PAD_DOWN |
+                               PAD_A | PAD_B);
+
+    /* Whichever key opened this has to be let go of before it counts again. */
+    if (!(g->pad & PAD_PAUSE))
+        g->pause_esc = 1;
+    if (!(g->pad & PAD_QUIT))
+        g->pause_q = 1;
+
+    if ((g->pad & PAD_QUIT) && g->pause_q) {
+        pause_clear(g);
+        g->quit = 1;
+        title_start(g);
+        return;
+    }
+    if (other || ((g->pad & PAD_PAUSE) && g->pause_esc)) {
+        pause_clear(g);
+        g->state = GS_PLAY;
+        if (g->snd)
+            snd_resume(g->snd);          /* FUN_1000_cf44 */
+    }
+}
+
 /* Advance a fade by one game frame's worth of VSYNC ticks.  Returns non-zero
  * once it has run out of steps. */
 static int fade_advance(Game *g, int cost, int dir, int last)
@@ -645,6 +698,9 @@ void game_tick(Game *g)
         return;
     case GS_END:
         ending_tick(g);
+        return;
+    case GS_PAUSE:
+        pause_tick(g);
         return;
     case GS_FADE_IN:
         scr_palette_fade(g->scr, g->pal, g->fade_step);
@@ -692,6 +748,12 @@ void game_tick(Game *g)
         return;
     case GS_PLAY:
         break;
+    }
+
+    /* FUN_1000_9e70's test, at the top of the stage loop. */
+    if (g->pad & (PAD_PAUSE | PAD_QUIT)) {
+        pause_start(g);
+        return;
     }
 
     g->frame++;
