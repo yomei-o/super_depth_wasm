@@ -24,10 +24,14 @@
  * the palette cycle:  FUN_1000_b854(4, 0, 0x4b, 0x139 - (3 < DS:0x193c), 5).
  *
  * Below that, rows 314..351 are the strip of sea the ship has just taken off
- * from, and the original never repaints them at all - so a bomb that falls
- * into the water there leaves a trail on the real machine.  Here the strip is
- * cleared with the rest of the play area, which is the one place this stage
- * deliberately looks tidier than the original. */
+ * from.  Nothing paints them - but nothing has to: FUN_1000_1fdc ends every
+ * frame with FUN_1000_b4ee, which drives the GRCG over all four planes and
+ * rep-stosws the whole 32000-byte page to colour 0.  So the strip is cleared
+ * along with everything else, which is what sd_fill does here.
+ *
+ * SEA is the odd one out: FUN_1000_06f6 has no b4ee at all and clears only
+ * rows 0..0x13f with FUN_1000_b854, which is how its sea floor survives from
+ * one frame to the next.  SKY, SPACE and BOSS all clear the lot. */
 #define SKY_BOTTOM 0x139
 #define SKY_COL    5
 
