@@ -297,9 +297,11 @@ static int free_blast(Game *g)
 /* The death, which is the same for all three: everything stops, the music cuts
  * out, explosions burst over the body for forty frames, then a white flash and
  * the bonus.  game_tick ends the stage once the phase passes fifty. */
-static void boss_dying(Game *g, int lo, int hi, int spanx, int spany, int bonus)
+static void boss_dying(Game *g, int lo, int hi, int anchor, int xoff,
+                       int spanx, int spany, int bonus)
 {
     int i;
+    int ax = g->ent[anchor].x, ay = g->ent[anchor].y;
 
     g->boss_phase++;
     if (g->boss_phase == 2 && g->snd)
@@ -311,8 +313,8 @@ static void boss_dying(Game *g, int lo, int hi, int spanx, int spany, int bonus)
                 g->ent[i].state = 10;
         } else if (g->boss_phase < 0x28) {
             g->ent[i].state = 9 - sd_rand(g) % 3;
-            g->ent[i].x = sd_rand(g) % spanx + g->ent[1].x - 0x10;
-            g->ent[i].y = sd_rand(g) % spany + g->ent[1].y - 0x10;
+            g->ent[i].x = sd_rand(g) % spanx + ax + xoff;
+            g->ent[i].y = sd_rand(g) % spany + ay - 0x10;
             g->ent[i].vx = g->ent[i].vy = 0;
             sd_sfx(g, SFX_HIT);
         }
@@ -341,7 +343,9 @@ static void boss1(Game *g)
     int i;
 
     if (g->boss_hits >= BOSS_HP) {
-        boss_dying(g, 7, 6, 0x80, 0x60, SD_SCORE[4][2]);
+        /* slots 7..15 scatter round slot 1; slots 7..12 take the body's
+         * places at the end.  DS:0x02ec is the bonus. */
+        boss_dying(g, 7, 6, 1, -0x10, 0x80, 0x60, SD_SCORE[4][2]);
         return;
     }
     g->boss_timer++;
@@ -514,7 +518,9 @@ static void boss3(Game *g)
     Ent *b = &g->ent[1];
 
     if (g->boss_hits >= BOSS_HP) {
-        boss_dying(g, 9, 6, 0x60, 0x80, SD_SCORE[4][4]);
+        /* This one scatters round slot 3 - the jaw - and to its right
+         * (+0x10, not -0x10), and pays DS:0x02f4, not 0x02f0. */
+        boss_dying(g, 9, 6, 3, 0x10, 0x60, 0x80, SD_SCORE[4][6]);
         return;
     }
     if (g->ent[9].state < 10 && --g->ent[9].state == 0)
