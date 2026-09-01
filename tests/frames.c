@@ -3,6 +3,7 @@
  *
  *   frames <out-prefix> <tick>[,<tick>...] [--keys MASK] [--tap N] [--auto]
  *                                    [--god] [--quiet] [--wav OUT.WAV]
+ *                                    [--stage N]
  *
  * --tap releases the fire buttons every other N frames, since the original
  * wants them let go of between charges, so a run actually drops more than one.
@@ -116,7 +117,7 @@ int main(int argc, char **argv)
     unsigned char pal[256][3];
     int want[64], nwant = 0, maxtick = 0, base[4], i, t;
     unsigned keys = 0;
-    int tap = 0, quiet = 0, auto_play = 0, god = 0;
+    int tap = 0, quiet = 0, auto_play = 0, god = 0, start_stage = 0;
     const char *prefix = argc > 1 ? argv[1] : "tmp/f";
 
     if (argc > 2) {
@@ -140,6 +141,8 @@ int main(int argc, char **argv)
             quiet = 1;
         else if (!strcmp(argv[i], "--wav") && i + 1 < argc)
             wav = argv[++i];
+        else if (!strcmp(argv[i], "--stage") && i + 1 < argc)
+            start_stage = atoi(argv[++i]);
     }
     for (i = 0; i < nwant; i++)
         if (want[i] > maxtick)
@@ -158,6 +161,10 @@ int main(int argc, char **argv)
     scr_init(&scr, &bank);
     game_init(&game, &scr, &bank, &font, base[0], base[1], base[2], base[3]);
     game.invuln = god;
+    if (start_stage > 0) {
+        game.last_stage = start_stage;   /* so it says "Ready", not "Stage nn" */
+        game_stage_start(&game, start_stage);
+    }
     if (wav) {
         if (snd_load(&snddata, "orig/DEPTH.BGM", "orig/DEPTH.EFS") < 0) {
             fprintf(stderr, "cannot read orig/DEPTH.BGM or orig/DEPTH.EFS\n");

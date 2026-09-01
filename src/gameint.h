@@ -44,6 +44,8 @@ struct Stage {
     void (*draw)(Game *g);
     /* The blips in the HUD's black panel, drawn after the band is painted. */
     void (*radar)(Game *g);
+    /* The x range the flush bomb reaches; SEA and SKY disagree by a sprite. */
+    int flush_x0, flush_x1;
 };
 
 const Stage *stage_for(int type);

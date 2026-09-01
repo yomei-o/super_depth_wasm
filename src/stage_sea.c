@@ -644,7 +644,7 @@ static void sea_draw(Game *g)
 
 static const Stage SEA = {
     1, sea_start, sea_enemy, sea_fire, sea_shots, sea_weapons, sea_item,
-    sea_clear_shots, sea_draw, draw_radar
+    sea_clear_shots, sea_draw, draw_radar, 0, 0x240
 };
 
 const Stage *stage_sea(void) { return &SEA; }

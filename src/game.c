@@ -421,7 +421,8 @@ static void item_flush(Game *g)
     for (i = 1; i < MAX_ENT; i++) {
         Ent *e = &g->ent[i];
 
-        if (e->state == 10 && e->y != g->ent_off && e->x > 0 && e->x < 0x240)
+        if (e->state == 10 && e->y != g->ent_off &&
+            e->x > g->stage_ops->flush_x0 && e->x < g->stage_ops->flush_x1)
             sd_kill_enemy(g, i);
     }
     g->stage_ops->clear_shots(g);
