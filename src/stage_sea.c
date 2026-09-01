@@ -497,8 +497,11 @@ static void draw_enemies(Game *g)
 
         if (e->y <= 0xf)
             continue;
+        /* ((-(narrow != 0) & 0x20) - 0x20) <= x && x < 0x260.  Kinds 3 and 9
+         * are one 32-wide pattern and are gone once x is negative; the rest
+         * are 64 wide and have to keep being drawn to x = -0x20. */
         narrow = (e->kind == 3 || e->kind == 9);
-        lo = narrow ? -0x20 : 0;
+        lo = narrow ? 0 : -0x20;
         if (e->x < lo || e->x >= 0x260)
             continue;
         if (e->state < 10) {
