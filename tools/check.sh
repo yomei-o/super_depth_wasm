@@ -8,6 +8,8 @@
 #   * the twelve stages, the title and the ranking screen all draw
 #   * a long unattended run gets through the stages instead of stalling
 #   * clearing stage 12 plays the ending out to the end
+#   * the WASM build makes a noise, not just the native one
+#   * the title is playing the right song
 #   * ESC pauses, a direction key resumes, Q quits
 #     (this is how the boss-less type 4 was caught hanging for ever)
 #   * the WASM build draws the same pixels as the native one
@@ -67,6 +69,15 @@ echo "== sound =="
 ./tests/tune.exe list | head -1
 ./tests/tune.exe song 3 4 tmp/check/sea.wav
 ./tests/tune.exe eff 1 1 tmp/check/eff1.wav
+# The two above are the native build.  This one is the .wasm the page loads:
+# a build with the synth missing or sd_audio unexported would pass the others.
+"$NODE" tests/wasm_audio.js 120
+# The title has to be playing the theme (song 2), not whatever g->type happens
+# to say - it says 1 up there, because the title screen is a SEA scene.
+./tests/frames.exe tmp/check/title_snd 60 --wav tmp/check/title.wav --quiet
+./tests/tune.exe song 2 3 tmp/check/song2.wav
+printf 'title music: '
+python tools/songcmp.py tmp/check/title.wav tmp/check/song2.wav
 
 echo "== native and WASM draw the same pixels =="
 # The title screen, and then one frame of each stage type, because a stale

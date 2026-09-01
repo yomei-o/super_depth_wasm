@@ -174,16 +174,28 @@ void sd_sfx(Game *g, int n)
  * stage: SEA, SKY, SPACE and BOSS are songs 3, 4, 5 and 6. */
 void sd_music(Game *g, int song, int loop)
 {
+    /* Remembered even with no synth attached, so that whatever asked for it
+     * first still gets heard once one turns up - see game_sound. */
+    g->music = song;
+    g->music_loop = loop;
     if (!g->snd)
         return;
     g->snd->loop = loop;
     snd_play(g->snd, song);
 }
 
+/* The front ends load the sound files after game_init, which has already run
+ * title_start - and title_start's sd_music call was dropped for want of a
+ * synth.  Play back whatever the last one asked for.
+ *
+ * This used to guess the song as g->type + 2, which is right for a stage but
+ * wrong at the title: title.c sets g->type to 1 because the title screen is a
+ * SEA scene, so the opening played the SEA song instead of the theme. */
 void game_sound(Game *g, Snd *snd)
 {
     g->snd = snd;
-    sd_music(g, g->type + 2, 1);
+    if (g->music)
+        sd_music(g, g->music, g->music_loop);
 }
 
 /* ---------------------------------------------------------------- start-up */

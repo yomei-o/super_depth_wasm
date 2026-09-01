@@ -160,6 +160,7 @@ typedef struct Game {
     /* Which of the between-stage animations is running, and how far in. */
     int cut_kind, cut_step;
     int end_phase, end_step, end_item, end_sub;  /* FUN_1000_95a4 */
+    int music, music_loop;  /* the last song asked for, synth or not */
     int pause_esc, pause_q;   /* FUN_1000_9e70's two "let go of it first" flags */
     int quit;                 /* DS:0x184c went to 0 - see the note in game.c */
     int record_score;     /* the ranking screen is showing the run's score */
