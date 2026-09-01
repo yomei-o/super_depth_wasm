@@ -198,9 +198,27 @@ static void sea_enemy(Game *g, int idx)
         }
         break;
     case 9:
-        if (sd_rand(g) % 0xf == 0 && e->y == 0 && g->kills < g->quota)
-            spawn(g, e, 7, 2, 0x4c0, 4, 2);
-        break;
+        /* FUN_1000_1288, and nothing like the others.  It picks a home depth
+         * in DS:0x1822 and from then on accelerates towards it, which is the
+         * bobbing that makes it worth chasing; it comes in from further out
+         * and faster, runs away faster, and never fires. */
+        if (sd_rand(g) % 0xf == 0 && e->y == 0 && g->kills < g->quota) {
+            e->aux = (sd_rand(g) % 5 + 3) * 0x20;
+            e->y = (sd_rand(g) % 2) * 0x40 + e->aux - 0x20;
+            e->x = (sd_rand(g) % 2) * 0x4e0 + FIELD_LO;
+            e->vx = (sd_rand(g) % 5 + 5) * sd_toward_middle(e->x);
+            e->vy = 0;
+        }
+        if (g->quota <= g->kills)
+            e->vx = sd_sgn(e->vx) * 10;
+        /* Its own right-hand bound: 0x39f, not the 0x37f the others use. */
+        if (e->x + e->vx < FIELD_LO + 1 || e->x + e->vx > 0x39f) {
+            e->y = 0;
+            e->vy = 0;
+        }
+        if (e->y != 0 && e->aux != e->y)
+            e->vy += (e->aux <= e->y) ? -1 : 1;
+        return;
     default:
         return;
     }
@@ -208,9 +226,10 @@ static void sea_enemy(Game *g, int idx)
     if (e->y == 0)
         return;
 
-    /* Quota met: the survivors turn and run.  The original recomputes this
-     * every frame as sign(vx) << 3, so it is a flat +-8. */
-    if (g->quota <= g->kills)
+    /* Quota met: kinds 1 and 3 turn and run (FUN_1000_06f6 at 236 and 341).
+     * Kinds 2 and 4 have no such block and keep the speed they came in at.
+     * The original recomputes it every frame as sign(vx) << 3, a flat +-8. */
+    if ((e->kind == 1 || e->kind == 3) && g->quota <= g->kills)
         e->vx = sd_sgn(e->vx) * 8;
 
     if (e->x + e->vx < FIELD_LO + 1 || e->x + e->vx > FIELD_HI - 1) {
@@ -224,7 +243,6 @@ static void sea_enemy(Game *g, int idx)
 
         switch (e->kind) {
         case 1:
-        case 9:
             period = g->ship * -0x28 + 100;
             if (period > 0 && sd_rand(g) % period == 0 &&
                 g->bullets_live < 0x10) {
