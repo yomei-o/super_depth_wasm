@@ -37,9 +37,9 @@
 <body>
 <canvas id="screen" width="640" height="400"></canvas>
 <div class="keys">
-  <kbd>&larr;</kbd> <kbd>&rarr;</kbd> 移動 &nbsp;
-  <kbd>Z</kbd>/<kbd>Space</kbd> 左の爆雷 &nbsp;
-  <kbd>X</kbd>/<kbd>Enter</kbd> 右の爆雷 &nbsp;
+  <kbd>&larr;</kbd> <kbd>&rarr;</kbd> 移動、<kbd>&uarr;</kbd> <kbd>&darr;</kbd>（SPACE 面）&nbsp;
+  <kbd>Z</kbd>/<kbd>Space</kbd> 左 &nbsp;
+  <kbd>X</kbd>/<kbd>Enter</kbd> 右 &nbsp;
   <kbd>1</kbd>…<kbd>9</kbd> ステージ切替
 </div>
 <div class="keys">音はブラウザの都合で、最初にキーを押すかクリックしたときに出ます。</div>
@@ -61,10 +61,12 @@
 </div>
 
 <script>
-const PAD = { LEFT: 1, RIGHT: 2, A: 4, B: 8 };
+const PAD = { LEFT: 1, RIGHT: 2, A: 4, B: 8, UP: 16, DOWN: 32 };
 const KEYMAP = {
   ArrowLeft: PAD.LEFT,  KeyH: PAD.LEFT,
   ArrowRight: PAD.RIGHT, KeyL: PAD.RIGHT,
+  ArrowUp: PAD.UP, KeyK: PAD.UP,
+  ArrowDown: PAD.DOWN, KeyJ: PAD.DOWN,
   KeyZ: PAD.A, Space: PAD.A,
   KeyX: PAD.B, Enter: PAD.B,
 };

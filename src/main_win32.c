@@ -97,6 +97,8 @@ static char    g_dir[MAX_PATH];
 static const struct { unsigned mask; int vk; } g_keys[] = {
     { PAD_LEFT,  VK_LEFT },  { PAD_LEFT,  'H' },
     { PAD_RIGHT, VK_RIGHT }, { PAD_RIGHT, 'L' },
+    { PAD_UP,    VK_UP },    { PAD_UP,    'K' },
+    { PAD_DOWN,  VK_DOWN },  { PAD_DOWN,  'J' },
     { PAD_A,     'Z' },      { PAD_A,     VK_SPACE },
     { PAD_B,     'X' },      { PAD_B,     VK_RETURN },
     { 0, 0 }

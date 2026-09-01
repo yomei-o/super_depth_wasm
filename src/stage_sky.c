@@ -560,8 +560,8 @@ static void sky_radar(Game *g)
 }
 
 static const Stage SKY = {
-    2, sky_start, sky_enemy, sky_fire, sky_shots, sky_weapons, sky_item,
-    sky_clear_shots, sky_draw, sky_radar, -0x20, 0x260
+    2, sky_start, sky_enemy, sd_move_side, sky_fire, sky_shots, sky_weapons,
+    sky_item, sky_clear_shots, sd_motion, sky_draw, sky_radar, -0x20, 0x260
 };
 
 const Stage *stage_sky(void) { return &SKY; }

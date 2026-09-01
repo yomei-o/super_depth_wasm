@@ -40,11 +40,14 @@
 #define MAX_BULLET 16    /* the enemies' rising shots */
 #define MAX_MISSILE 8    /* the faster weapon kinds 2 and 4 use */
 
-/* pad bits; the original reads them as separate ints at DS:0x2134.. */
+/* pad bits; the original reads them as separate ints at DS:0x2130..0x213a.
+ * Only SPACE uses up and down - the ship is on the surface in SEA and SKY. */
 #define PAD_LEFT  0x01
 #define PAD_RIGHT 0x02
 #define PAD_A     0x04
 #define PAD_B     0x08
+#define PAD_UP    0x10
+#define PAD_DOWN  0x20
 
 /* The playfield is wider than the screen: enemies live 320px off each edge and
  * are dropped once past -0x140 / 0x380. */
@@ -63,12 +66,19 @@ typedef struct {
 typedef struct { int y, x, v; } Bullet;
 typedef struct { int y, x, vx, vy; } Missile;
 
+/* SPACE's starfield: 70 of them in three parallax layers, scrolled by the
+ * ship's horizontal speed. */
+#define MAX_STAR 70
+typedef struct { int x, y, layer, colour; } Star;
+
 typedef struct {
     int kind;             /* DS:0x17f6 */
     int x, y;             /* DS:0x1f8a, DS:0x1fca; y == 0 means not on screen */
     int vx, vy;           /* DS:0x1d6a, DS:0x1d8a */
     int state;            /* DS:0x1faa, 10 = alive, then counts down while dying */
     int aux;              /* DS:0x1822 */
+    int speed;            /* DS:0x1d4a[i], the same array the ship's speed is
+                           * slot 0 of; only SPACE gives the enemies one */
 } Ent;
 
 /* What the stage loop is doing.  The original blocks inside its fade routines
@@ -105,7 +115,7 @@ typedef struct Game {
     int nent;             /* DS:0x17f4, 9 by default, 15 with -E */
     int wait;             /* DS:0x1820, VSYNC ticks per frame; 5 by default */
 
-    int px, py, pvx;      /* slot 0 of the arrays, plus DS:0x1d6a[0] */
+    int px, py, pvx, pvy; /* slot 0 of the arrays, plus DS:0x1d6a/0x1d8a[0] */
     int speed;            /* DS:0x1d4a, 4 at stage start; Speed Up! */
     int shot_max;         /* DS:0x1d48, 4 at stage start; Shot Max Up! */
     int power;            /* DS:0x20c6, Shot Special!: the charges spread */
@@ -126,6 +136,12 @@ typedef struct Game {
     /* FUN_1000_8184's three counters, which drive the animated palette, the
      * bobbing waterline, the charge sprite and the bullet sprite. */
     int pal_a, pal_b, pal_c;   /* DS:0x1846 (0..2), DS:0x184a (0..3), DS:0x193c (0..7) */
+
+    /* The in-game palette.  It is SD_PAL_GAME to start with, but SPACE blacks
+     * out entry 0 for the sky - the original patches DS:0x02ba the same way. */
+    unsigned char pal[16][3];
+
+    Star star[MAX_STAR];
 
     Ent ent[MAX_ENT];
     Shot shot[MAX_SHOT];

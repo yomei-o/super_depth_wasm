@@ -9,7 +9,7 @@
  *
  *   type 1  SEA    FUN_1000_06f6   src/stage_sea.c
  *   type 2  SKY    FUN_1000_1fdc   src/stage_sky.c
- *   type 3  SPACE  FUN_1000_383a   not written yet
+ *   type 3  SPACE  FUN_1000_383a   src/stage_space.c
  *   type 4  BOSS   FUN_1000_5818   not written yet
  *
  * Nothing in here is part of the port's interface; front ends only need
@@ -30,6 +30,8 @@ struct Stage {
     /* One entity: count it if it is on the field, wind down its explosion, or
      * spawn / steer / fire it. */
     void (*enemy)(Game *g, int i);
+    /* Read the stick into the ship's velocity. */
+    void (*move)(Game *g);
     /* A launcher: 0 is the left button, 1 the right. */
     void (*fire)(Game *g, int which);
     /* The player's weapon: move, hit things, drop items. */
@@ -40,6 +42,9 @@ struct Stage {
     void (*item)(Game *g);
     /* Everything the flush bomb clears besides the enemies. */
     void (*clear_shots)(Game *g);
+    /* Apply everything's velocity.  SEA and SKY move the ship; SPACE keeps it
+     * where it is and slides the world past instead. */
+    void (*motion)(Game *g);
     /* The background and every sprite; game.c adds the HUD on top. */
     void (*draw)(Game *g);
     /* The blips in the HUD's black panel, drawn after the band is painted. */
@@ -51,6 +56,7 @@ struct Stage {
 const Stage *stage_for(int type);
 const Stage *stage_sea(void);
 const Stage *stage_sky(void);
+const Stage *stage_space(void);
 
 /* --- game.c, for the stage modules ------------------------------------- */
 
@@ -67,6 +73,10 @@ void sd_item_apply(Game *g);         /* FUN_1000_80f0 */
 void sd_item_taken(Game *g);         /* the message, the sound, and the bomb */
 void sd_hud_score(Game *g);
 void sd_quota(Game *g, int per, int shipmul);
+/* The default `motion`: every entity by its own velocity, then the ship. */
+void sd_motion(Game *g);
+/* The default `move`: left and right at `speed`, between 0x30 and 0x210. */
+void sd_move_side(Game *g);
 
 /* Drawing helpers.  `fill` takes byte columns and pixel rows, like
  * FUN_1000_b854; `pat_pair` is FUN_1000_88a2 and skips the half that has left

@@ -60,10 +60,11 @@ int game_frame_ms(const Game *g)
 
 const Stage *stage_for(int type)
 {
-    /* Types 3 (SPACE) and 4 (BOSS) have not been written yet, so they get the
-     * SEA loop with their own roster - wrong, but it runs. */
+    /* Type 4 (BOSS) has not been written yet, so it gets the SEA loop with its
+     * own roster - wrong, but it runs. */
     switch (type) {
     case 2: return stage_sky();
+    case 3: return stage_space();
     default: return stage_sea();
     }
 }
@@ -199,6 +200,7 @@ void game_init(Game *g, Screen *scr, const PatBank *bank, const TextFont *font,
     g->base_c08 = base_c08;
     g->base_bos = base_bos;
     g->rnd = 1;
+    memcpy(g->pal, SD_PAL_GAME, sizeof g->pal);
     txt_init(&g->txt, font);
     /* FUN_1000_8960 sets the defaults: 3 lives, start at stage 1, 9 entities,
      * 5 VSYNC ticks a frame, speed 4 and 4 charges. */
@@ -208,7 +210,7 @@ void game_init(Game *g, Screen *scr, const PatBank *bank, const TextFont *font,
     g->speed = 4;
     g->shot_max = 4;
     g->last_stage = 1;
-    scr_palette(scr, SD_PAL_GAME);
+    scr_palette(scr, g->pal);
     game_stage_start(g, 1);
 }
 
@@ -254,8 +256,10 @@ void game_stage_start(Game *g, int stage)
     retry = (g->stage == g->last_stage);
 
     g->pvx = 0;
+    g->pvy = 0;
     g->pstate = 10;
     g->trig = 1;
+    memcpy(g->pal, SD_PAL_GAME, sizeof g->pal);
     if (retry) {
         g->speed = 4;
         g->shot_max = 4;
@@ -284,7 +288,7 @@ void game_stage_start(Game *g, int stage)
     g->state = GS_FADE_IN;
     g->fade_step = 0;
     g->fade_ticks = 0;
-    scr_palette_fade(g->scr, SD_PAL_GAME, 0);
+    scr_palette_fade(g->scr, g->pal, 0);
     sd_music(g, g->type + 2, 1);
 }
 
@@ -305,11 +309,7 @@ static int update_player(Game *g)
         }
         return 1;
     }
-    g->pvx = 0;
-    if ((g->pad & PAD_RIGHT) && g->speed + g->px < PX_MAX)
-        g->pvx = g->speed;
-    if ((g->pad & PAD_LEFT) && PX_MIN - 1 < g->px - g->speed)
-        g->pvx = -g->speed;
+    g->stage_ops->move(g);
 
     if (g->pad & PAD_A)
         g->stage_ops->fire(g, 0);
@@ -318,6 +318,17 @@ static int update_player(Game *g)
     if (!(g->pad & (PAD_A | PAD_B)))
         g->trig = 1;
     return 1;
+}
+
+/* SEA and SKY: the ship slides along the surface at `speed`.
+ *   right while  speed + x < 0x210,  left while  0x2f < x - speed  */
+void sd_move_side(Game *g)
+{
+    g->pvx = 0;
+    if ((g->pad & PAD_RIGHT) && g->speed + g->px < PX_MAX)
+        g->pvx = g->speed;
+    if ((g->pad & PAD_LEFT) && PX_MIN - 1 < g->px - g->speed)
+        g->pvx = -g->speed;
 }
 
 void sd_hit_player(Game *g)
@@ -446,7 +457,7 @@ void sd_item_taken(Game *g)
 /* Movement is applied together, after everything has decided what to do - the
  * original does exactly this, walking the slots down from DS:0x17f4 and adding
  * vx/vy, then the player, then flipping the page. */
-static void apply_motion(Game *g)
+void sd_motion(Game *g)
 {
     int i;
 
@@ -455,7 +466,7 @@ static void apply_motion(Game *g)
         g->ent[i].y += g->ent[i].vy;
     }
     g->px += g->pvx;
-    g->page ^= 1;
+    g->py += g->pvy;
 }
 
 /* FUN_1000_8184, once a frame: four of the sixteen colours are rewritten from
@@ -603,29 +614,29 @@ void game_tick(Game *g)
 
     switch (g->state) {
     case GS_FADE_IN:
-        scr_palette_fade(g->scr, SD_PAL_GAME, g->fade_step);
+        scr_palette_fade(g->scr, g->pal, g->fade_step);
         draw_all(g);
         if (fade_advance(g, 2, 1, 15)) {
             g->state = GS_PLAY;
-            scr_palette(g->scr, SD_PAL_GAME);
+            scr_palette(g->scr, g->pal);
         }
         return;
     case GS_FLASH_UP:
-        scr_palette_flash(g->scr, SD_PAL_GAME, g->fade_step);
+        scr_palette_flash(g->scr, g->pal, g->fade_step);
         draw_all(g);
         if (fade_advance(g, 1, 1, 15))
             g->state = GS_FLASH_DOWN;
         return;
     case GS_FLASH_DOWN:
-        scr_palette_flash(g->scr, SD_PAL_GAME, g->fade_step);
+        scr_palette_flash(g->scr, g->pal, g->fade_step);
         draw_all(g);
         if (fade_advance(g, 1, -1, 0)) {
             g->state = GS_PLAY;
-            scr_palette(g->scr, SD_PAL_GAME);
+            scr_palette(g->scr, g->pal);
         }
         return;
     case GS_FADE_OUT:
-        scr_palette_fade(g->scr, SD_PAL_GAME, g->fade_step);
+        scr_palette_fade(g->scr, g->pal, g->fade_step);
         draw_all(g);
         if (fade_advance(g, 2, -1, 0)) {
             /* A life was lost, so the same stage comes round again. */
@@ -663,7 +674,8 @@ void game_tick(Game *g)
     g->stage_ops->shots(g);
     g->stage_ops->weapons(g);
     g->stage_ops->item(g);
-    apply_motion(g);
+    g->stage_ops->motion(g);
+    g->page ^= 1;
     draw_all(g);
     pal_tick(g);
     if (!update_player(g)) {
