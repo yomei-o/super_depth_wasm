@@ -97,6 +97,7 @@ typedef enum {
     GS_TITLE,        /* FUN_1000_8ae2, src/title.c */
     GS_RECORD,       /* FUN_1000_a816, src/record.c */
     GS_CUT,          /* between the stages, src/cut.c */
+    GS_NAME,         /* FUN_1000_ab76, src/name.c */
     GS_FADE_IN,      /* FUN_1000_82d7(0x2b8), 16 steps of 2 VSYNC ticks */
     GS_PLAY,
     GS_FLASH_UP,     /* FUN_1000_83b5(0x2b8), the flush bomb going off */
@@ -150,6 +151,12 @@ typedef struct Game {
     /* Which of the between-stage animations is running, and how far in. */
     int cut_kind, cut_step;
     int record_score;     /* the ranking screen is showing the run's score */
+
+    /* The name entry: which row of the table is being filled in, where the
+     * cursor is on the keyboard (a column is two text cells) and in the name. */
+    int name_row, name_key, name_col, name_pos;
+    char name_buf[9];
+    char score_path[260];  /* where DEPTH.SCR is written back */
     int died;             /* local_4e; set when the last life ran out this stage */
 
     /* The item, DS:0x1dc0 / 0x193e / 0x1d40 / 0x1db2 / 0x1db4 / 0x1d44.
@@ -200,10 +207,20 @@ void title_tick(Game *g);
 
 /* The ranking screen (src/record.c), which the title's "Record" opens.
  * record_load reads DEPTH.SCR; without it the table shows its empty rows. */
-int  record_load(Game *g, const char *path);
+/* `save_path` is where a new entry is written; the original reads and writes
+ * the same file, but a port had better not scribble on the shipped one. */
+int  record_load(Game *g, const char *path, const char *save_path);
+int  record_save(Game *g, const char *path);
+int  record_insert(Game *g);          /* returns the row, or -1 */
+void record_draw_table(Game *g, int highlight_row);
+void record_draw_frame(Game *g);
 void record_start(Game *g);
 void record_start_score(Game *g);
 void record_tick(Game *g);
+
+/* The name entry (src/name.c), which a score good enough for the table opens. */
+void name_start(Game *g, int row);
+void name_tick(Game *g);
 
 /* What plays between the stages (src/cut.c): 1 = SEA to SKY, 2 = SKY to
  * SPACE, 3 = SPACE to BOSS.  game_stage_start runs one instead of the fade

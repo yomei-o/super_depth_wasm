@@ -209,6 +209,9 @@ void game_init(Game *g, Screen *scr, const PatBank *bank, const TextFont *font,
     g->speed = 4;
     g->shot_max = 4;
     g->last_stage = 1;
+    /* The title does not run a stage, but draw_all goes through stage_ops, so
+     * give it something before anything can ask. */
+    g->stage_ops = stage_for(1);
     scr_palette(scr, g->pal);
     title_start(g);
 }
@@ -632,6 +635,9 @@ void game_tick(Game *g)
     case GS_CUT:
         cut_tick(g);
         return;
+    case GS_NAME:
+        name_tick(g);
+        return;
     case GS_FADE_IN:
         scr_palette_fade(g->scr, g->pal, g->fade_step);
         draw_all(g);
@@ -665,11 +671,16 @@ void game_tick(Game *g)
         return;
     case GS_OVER:
         draw_all(g);
-        /* FUN_1000_aa92: the ranking, with this run's score under it.  A
-         * score good enough for the table would go to the name entry first,
-         * which is not written. */
-        if (g->pad & (PAD_A | PAD_B))
-            record_start_score(g);
+        /* FUN_1000_aa92: a score better than tenth place goes to the name
+         * entry, anything else just sees the table with its score under it. */
+        if (g->pad & (PAD_A | PAD_B)) {
+            int row = record_insert(g);
+
+            if (row >= 0)
+                name_start(g, row);
+            else
+                record_start_score(g);
+        }
         return;
     case GS_PLAY:
         break;

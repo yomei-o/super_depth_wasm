@@ -128,8 +128,13 @@ void txt_draw(const TextPlane *t, Screen *s)
             fg = SCR_TEXT + ((attr >> 5) & 7);
             bg = -1;
             if (attr & TXT_ATTR_REVERSE) {
+                /* Reverse swaps which half of the cell is transparent: the
+                 * background becomes the attribute colour and the glyph itself
+                 * lets the graphics through.  The name entry relies on it -
+                 * the character it highlights is a hole in a black cell with a
+                 * yellow box drawn behind. */
                 bg = fg;
-                fg = SCR_TEXT;          /* reversed text is black on the colour */
+                fg = -1;
             }
             g = t->font->row[t->glyph[row][col]];
             for (y = 0; y < 16; y++) {
@@ -141,10 +146,12 @@ void txt_draw(const TextPlane *t, Screen *s)
                 if ((attr & TXT_ATTR_UNDER) && y == 15)
                     bits = 0xff;
                 for (x = 0; x < 8; x++) {
-                    if (bits & (0x80 >> x))
-                        dst[x] = (unsigned char)fg;
-                    else if (bg >= 0)
+                    if (bits & (0x80 >> x)) {
+                        if (fg >= 0)
+                            dst[x] = (unsigned char)fg;
+                    } else if (bg >= 0) {
                         dst[x] = (unsigned char)bg;
+                    }
                 }
             }
         }

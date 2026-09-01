@@ -13,3 +13,6 @@
 
 # Python bytecode from tools/.
 __pycache__/
+
+# The score file the native build writes next to the executable.
+/DEPTH.SCR

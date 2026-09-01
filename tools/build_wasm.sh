@@ -15,7 +15,7 @@ EXPORTS=$EXPORTS,_sd_patterns,_sd_stage,_sd_set_stage,_sd_score,_sd_lives
 EXPORTS=$EXPORTS,_sd_frame_ms,_sd_audio,_sd_audio_rate,_sd_audio_max
 
 SRC="src/main_wasm.c src/game.c src/stage_sea.c src/stage_sky.c"
-SRC="$SRC src/stage_space.c src/stage_boss.c src/title.c src/record.c src/cut.c"
+SRC="$SRC src/stage_space.c src/stage_boss.c src/title.c src/record.c src/cut.c src/name.c"
 SRC="$SRC src/video.c src/text.c src/bfnt.c src/sound.c"
 
 # A marker touched just before the compile.  `cmd /c start /WAIT` does not hand

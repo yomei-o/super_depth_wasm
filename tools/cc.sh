@@ -67,7 +67,7 @@ export INCLUDE LIB
     echo "-Fo:\"$wobj/\""
 } > "$rsp"
 
-libs=; subsystem=
+srcs=; libs=; subsystem=
 while [ $# -gt 0 ]; do
     case "$1" in
     -O2|-O1)      echo '-O2' >> "$rsp" ;;
@@ -80,10 +80,21 @@ while [ $# -gt 0 ]; do
     -o)           out="$2"; shift ;;
     -l*)          libs="$libs ${1#-l}.lib" ;;
     -*)           echo "$1" >> "$rsp" ;;
-    *)            echo "\"$(w "$1")\"" >> "$rsp" ;;
+    *)            srcs="$srcs $1"; echo "\"$(w "$1")\"" >> "$rsp" ;;
     esac
     shift
 done
+
+# cl puts every object in one directory named after the source's BASENAME, so
+# two sources called the same thing in different directories silently clobber
+# each other and the link fails with an unresolved symbol that looks nothing
+# like the cause.  Say so instead.
+dups=$(for f in $srcs; do basename "$f"; done | sort | uniq -d)
+[ -z "$dups" ] || {
+    echo "two sources share a basename, so their .obj files would collide:" >&2
+    echo "$dups" >&2
+    exit 1
+}
 
 echo "-Fe:\"$(w "$out")\"" >> "$rsp"
 # Everything after -link has to sit on one line; see the note above.

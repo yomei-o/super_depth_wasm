@@ -8,7 +8,7 @@ Windows 版の続編 **WinDepth** の移植はこちら → https://github.com/y
 （自機の名前 `YAMABOKU` が両方に出てきます）
 
 **ひととおり遊べます。** タイトル → ステージ 1〜12（一周する）→ ゲームオーバー
-→ ランキング → タイトル。残っているのはネーム入力だけです。
+→ ネーム入力 → ランキング → タイトル。
 続きの作業に入る人は [RESUME.md](RESUME.md) の冒頭「引き継ぎ」から読んでください
 （いまどこまで／次にやること／刺された罠）。
 
@@ -34,7 +34,7 @@ PC-98 のテキストプレーンによる HUD（スコア・残機・枠・レ�
 タイトルには `DEPTH.FNT` の外字で組んだロゴとメニューとクレジット、
 `Record` には `DEPTH.SCR` のランキングが出ます。
 
-まだ無いもの: ネーム入力（ランキングへの書き込み）と、タイトルの Exit
+原典で移植していないのは、タイトルの `Exit` だけです
 （DOS へ戻るものなので移植には行き先がありません）。
 
 ```
@@ -113,6 +113,7 @@ Programming : alty
 | `src/title.c` | タイトル画面（ロゴは `DEPTH.FNT` の外字） |
 | `src/record.c` | ランキング画面（`DEPTH.SCR` を読む） |
 | `src/cut.c` | 面と面のあいだの演出 3 本 |
+| `src/name.c` | ネーム入力（`DEPTH.SCR` へ書き戻す） |
 | `src/main_win32.c` | ネイティブ（8bpp DIB） |
 | `src/main_wasm.c` | Emscripten（`putImageData` のみ、WebGL 不使用） |
 
@@ -163,6 +164,7 @@ python tools/bfnt.py orig/DEPTH.C32 tmp/c32.png --zoom 2 --cols 8
 
 ![title](docs/screen_title.png)
 ![record](docs/screen_record.png)
+![name](docs/screen_name.png)
 
 ![SEA](docs/screen_stage1.png)
 ![SEA](docs/screen_stage1_b.png)
@@ -255,7 +257,7 @@ WinDepth には無いパワーアップが一通りあります。
 13. ~~タイトル画面~~ 済 — `src/title.c`
 14. ~~Record（ランキング）~~ 済 — `src/record.c`
 15. ~~面と面のあいだの演出~~ 済 — `src/cut.c`
-16. ネーム入力（ランキングへの書き込み）
+16. ~~ネーム入力（ランキングへの書き込み）~~ 済 — `src/name.c`
 
 **具体的な次の手順・判明しているアドレス・踏んだ罠は
 [RESUME.md](RESUME.md) の冒頭「引き継ぎ」にまとめてあります。**

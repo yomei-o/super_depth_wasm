@@ -58,7 +58,7 @@ EMSCRIPTEN_KEEPALIVE int sd_init(void)
     scr_init(&g_scr, &g_bank);
     game_init(&g_game, &g_scr, &g_bank, &g_font,
               base[0], base[1], base[2], base[3]);
-    record_load(&g_game, "/orig/DEPTH.SCR");
+    record_load(&g_game, "/orig/DEPTH.SCR", "/DEPTH.SCR");
     if (snd_load(&g_snddata, "/orig/DEPTH.BGM", "/orig/DEPTH.EFS") == 0) {
         snd_init(&g_snd, &g_snddata);
         game_sound(&g_game, &g_snd);

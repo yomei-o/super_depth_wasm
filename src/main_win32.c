@@ -263,8 +263,14 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show)
     {
         char scr[MAX_PATH];
 
+        char save[MAX_PATH];
+
+        /* Read the one that ships in orig/, but write a copy beside the
+         * executable so the original file stays as it was. */
         sprintf(scr, "%s\\DEPTH.SCR", g_dir);
-        record_load(&g_game, scr);
+        strcpy(save, g_dir);
+        strcat(save, "\\..\\DEPTH.SCR");
+        record_load(&g_game, scr, save);
     }
     {
         char bgm[MAX_PATH], efs[MAX_PATH];

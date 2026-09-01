@@ -3,7 +3,7 @@
  *
  *   frames <out-prefix> <tick>[,<tick>...] [--keys MASK] [--tap N] [--auto]
  *                                    [--god] [--bossweak]
- *                                    [--record] [--fresh] [--quiet]
+ *                                    [--record] [--name] [--fresh] [--quiet]
  *                                    [--wav OUT.WAV]
  *                                    [--stage N]
  *
@@ -145,7 +145,7 @@ int main(int argc, char **argv)
     int want[64], nwant = 0, maxtick = 0, base[4], i, t;
     unsigned keys = 0;
     int tap = 0, quiet = 0, auto_play = 0, god = 0, start_stage = 0;
-    int boss_weak = 0, record = 0, fresh = 0;
+    int boss_weak = 0, record = 0, fresh = 0, name_entry = 0;
     const char *prefix = argc > 1 ? argv[1] : "tmp/f";
 
     if (argc > 2) {
@@ -171,6 +171,8 @@ int main(int argc, char **argv)
             record = 1;
         else if (!strcmp(argv[i], "--fresh"))
             fresh = 1;
+        else if (!strcmp(argv[i], "--name"))
+            name_entry = 1;
         else if (!strcmp(argv[i], "--quiet"))
             quiet = 1;
         else if (!strcmp(argv[i], "--wav") && i + 1 < argc)
@@ -196,9 +198,16 @@ int main(int argc, char **argv)
     game_init(&game, &scr, &bank, &font, base[0], base[1], base[2], base[3]);
     game.invuln = god;
     game.boss_weak = boss_weak;
-    record_load(&game, "orig/DEPTH.SCR");
+    record_load(&game, "orig/DEPTH.SCR", "tmp/DEPTH.SCR");
     if (record)
         record_start(&game);
+    if (name_entry) {
+        /* Pretend a run just ended with a score good enough for the table. */
+        game_stage_start(&game, 1);
+        game.score = 99999;
+        record_start(&game);
+        name_start(&game, record_insert(&game));
+    }
     if (start_stage > 0) {
         /* --fresh enters the stage the way finishing the one before does, so
          * the between-stage animation plays; without it the stage is entered

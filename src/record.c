@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 /* The rank labels, DS:0x0546: a digit and then one of the font's "st", "nd",
  * "rd", "th" characters, with 10 as its own character. */
@@ -42,11 +43,15 @@ static const unsigned char HEADER[] = {
     'D', 'a', 't', 'e', ' ', ' ', ' ', 0
 };
 
-int record_load(Game *g, const char *path)
+int record_load(Game *g, const char *path, const char *save_path)
 {
     FILE *f = fopen(path, "rb");
     char line[64];
     int n = 0;
+
+    strncpy(g->score_path, save_path ? save_path : path,
+            sizeof g->score_path - 1);
+    g->score_path[sizeof g->score_path - 1] = 0;
 
     memset(g->rank, 0, sizeof g->rank);
     for (n = 0; n < RANK_ROWS; n++) {
@@ -73,7 +78,7 @@ int record_load(Game *g, const char *path)
 
 /* FUN_1000_8674 - a black screen with a grey panel and a frame of 16x16 tiles
  * out of depth.c16 (0x60..0x68), in three boxes. */
-static void draw_frame(Game *g)
+void record_draw_frame(Game *g)
 {
     int c16 = g->base_c16, x, y;
 
@@ -108,7 +113,7 @@ static void draw_frame(Game *g)
 
 /* FUN_1000_a846 - the table.  Rows 6..15, and the score is right-justified
  * into a "000000" template. */
-static void draw_table(Game *g)
+void record_draw_table(Game *g, int hi)
 {
     char buf[16];
     int i, row;
@@ -123,7 +128,8 @@ static void draw_table(Game *g)
     txt_puts(&g->txt, 0x10, 8, 0xe1, "--------------------------------");
     for (i = 0; i < RANK_ROWS; i++) {
         row = i + 6;
-        txt_puts(&g->txt, row, 0xa, 0xe1, (const char *)RANK[i]);
+        txt_puts(&g->txt, row, 0xa, i == hi ? 0xc1 : 0xe1,
+                 (const char *)RANK[i]);
         sprintf(buf, "%06ld", g->rank[i].score);
         txt_puts(&g->txt, row, 0x10, 0xe1, buf);
         sprintf(buf, "%02d", g->rank[i].stage);
@@ -150,7 +156,7 @@ void record_start(Game *g)
     g->state = GS_RECORD;
     g->menu_trig = 0;               /* the button that got here is still down */
     txt_clear(&g->txt);
-    draw_table(g);
+    record_draw_table(g, -1);
     sd_music(g, SND_NAME, 1);       /* FUN_1000_aa44: song 8, NAME INN */
     g->fade_step = 0;
     g->fade_ticks = 0;
@@ -164,7 +170,50 @@ void record_start_score(Game *g)
     record_start(g);
     g->record_score = 1;
     txt_clear(&g->txt);
-    draw_table(g);
+    record_draw_table(g, -1);
+}
+
+/* FUN_1000_a46c's opening: find where this run's score belongs, push the rest
+ * down, and fill the row in with today's date and a blank name.  Returns the
+ * row, or -1 when the score did not make the table. */
+int record_insert(Game *g)
+{
+    time_t now = time(NULL);
+    struct tm *t = localtime(&now);
+    int i, j;
+
+    for (i = 0; i < RANK_ROWS; i++) {
+        if (g->rank[i].score >= g->score)
+            continue;
+        for (j = RANK_ROWS - 1; j > i; j--)
+            g->rank[j] = g->rank[j - 1];
+        g->rank[i].score = g->score;
+        g->rank[i].stage = g->stage;
+        strcpy(g->rank[i].name, "        ");
+        if (t)
+            sprintf(g->rank[i].date, "%02d/%02d/%02d",
+                    t->tm_year % 100, t->tm_mon + 1, t->tm_mday);
+        else
+            strcpy(g->rank[i].date, "00/00/00");
+        return i;
+    }
+    return -1;
+}
+
+/* The ten lines back out, in the layout DS:0x0ac3 gives:
+ * "000000 00          00/00/00". */
+int record_save(Game *g, const char *path)
+{
+    FILE *f = fopen(path, "wb");
+    int i;
+
+    if (!f)
+        return -1;
+    for (i = 0; i < RANK_ROWS; i++)
+        fprintf(f, "%06ld %02d %-8.8s %-8.8s\r\n", g->rank[i].score,
+                g->rank[i].stage, g->rank[i].name, g->rank[i].date);
+    fclose(f);
+    return 0;
 }
 
 void record_tick(Game *g)
@@ -179,7 +228,7 @@ void record_tick(Game *g)
         if (g->fade_step >= 15)
             scr_palette(g->scr, g->pal);
     }
-    draw_frame(g);
+    record_draw_frame(g);
     txt_draw(&g->txt, g->scr);
     if (!(g->pad & (PAD_A | PAD_B | PAD_UP | PAD_DOWN)))
         g->menu_trig = 1;
