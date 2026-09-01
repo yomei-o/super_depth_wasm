@@ -5,9 +5,10 @@
  * DIB with the game's 16 colours as its colour table and the keyboard becomes
  * GetAsyncKeyState.
  *
- * TODO: the original clocks off a timer-interrupt counter (DS:0x0dd0) whose rate
- * has not been pinned down - the PC-98's 8253 is usually programmed to either
- * ~100Hz or the 640x400 vertical sync at ~56Hz.  60Hz here until that is read.
+ * The frame rate is the original's: DS:0x0dd0 is a VSYNC counter (the handler at
+ * 1000:bb44 increments it and clears the interrupt through port 0x64), and the
+ * stage loop waits for DS:0x1820 of them, which defaults to 5.  At the 640x400
+ * mode's ~56.4Hz that is about eleven frames a second.
  */
 #include <windows.h>
 #include <stdio.h>
@@ -16,13 +17,14 @@
 #include "bfnt.h"
 #include "video.h"
 #include "game.h"
+#include "text.h"
 
 #define WD_TIMER_ID 1
-#define WD_FRAME_MS 17
 
-static PatBank g_bank;
-static Screen  g_scr;
-static Game    g_game;
+static PatBank  g_bank;
+static Screen   g_scr;
+static Game     g_game;
+static TextFont g_font;
 static HWND    g_hwnd;
 static BITMAPINFO *g_bmi;
 static char    g_dir[MAX_PATH];
@@ -52,7 +54,7 @@ static void sync_palette(void)
 {
     int i;
 
-    for (i = 0; i < 16; i++) {
+    for (i = 0; i < SCR_COLOURS; i++) {
         g_bmi->bmiColors[i].rgbRed   = g_scr.pal[i][0];
         g_bmi->bmiColors[i].rgbGreen = g_scr.pal[i][1];
         g_bmi->bmiColors[i].rgbBlue  = g_scr.pal[i][2];
@@ -82,11 +84,17 @@ static LRESULT CALLBACK wndproc(HWND h, UINT msg, WPARAM wp, LPARAM lp)
     switch (msg) {
     case WM_TIMER: {
         HDC hdc = GetDC(h);
+        static int period;
 
         read_input();
         game_tick(&g_game);
         present(hdc);
         ReleaseDC(h, hdc);
+        /* Types 3 and 4 run one VSYNC tick faster, so the timer follows. */
+        if (period != game_frame_ms(&g_game)) {
+            period = game_frame_ms(&g_game);
+            SetTimer(h, WD_TIMER_ID, (UINT)period, NULL);
+        }
         return 0;
     }
     case WM_PAINT: {
@@ -146,6 +154,16 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show)
             return 1;
         }
     }
+    {
+        char path[MAX_PATH];
+
+        sprintf(path, "%s\\DEPTH.FNT", g_dir);
+        if (txt_font_load(&g_font, path) < 0) {
+            MessageBoxA(NULL, "cannot read DEPTH.FNT", "Super Depth",
+                        MB_ICONERROR);
+            return 1;
+        }
+    }
     build_bmi();
     scr_init(&g_scr, &g_bank);
 
@@ -171,8 +189,9 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show)
     if (!g_hwnd)
         return 1;
 
-    game_init(&g_game, &g_scr, &g_bank, base[0], base[1], base[2], base[3]);
-    SetTimer(g_hwnd, WD_TIMER_ID, WD_FRAME_MS, NULL);
+    game_init(&g_game, &g_scr, &g_bank, &g_font,
+              base[0], base[1], base[2], base[3]);
+    SetTimer(g_hwnd, WD_TIMER_ID, (UINT)game_frame_ms(&g_game), NULL);
     ShowWindow(g_hwnd, show);
     UpdateWindow(g_hwnd);
 

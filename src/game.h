@@ -3,14 +3,18 @@
  * Work in progress: what is here has been read out of the original, and what has
  * not been read yet is absent rather than invented.  Reconstructed so far:
  *
- *   - the screen furniture of a type-1 (SEA) stage
+ *   - the screen furniture of a type-1 (SEA) stage, including the sea floor
  *   - the player: position, speed, limits, the two launchers, the depth charges
  *   - the enemies: the per-stage roster, spawning, movement and firing for
- *     kinds 1, 2, 3, 4 and 9, and the sprites for 1, 3 and 9
- *   - the enemies' two weapons, the collisions both ways, the score table
+ *     kinds 1, 2, 3, 4 and 9, all their sprites, and the dying animation
+ *   - the enemies' two weapons (the missiles home), the collisions both ways
+ *   - the items: the lottery, all seven effects, the flush bomb, the messages
+ *   - the HUD: score, lives, the frame, the stage banner - the text plane
+ *   - the per-frame palette animation and the fades
+ *   - the frame rate: VSYNC / DS:0x1820, i.e. 56.4Hz / 5
  *
- * Still to come: the items, the dying animations, the other three stage types,
- * the bosses, the title screen, the name entry, and all of the sound.
+ * Still to come: the other three stage types, the bosses, the title screen,
+ * the name entry and the ranking, and all of the sound.
  *
  * The original keeps its entities as parallel arrays of int16 at consecutive
  * DGROUP offsets with the PLAYER AT INDEX 0, which is why the fields below are
@@ -27,6 +31,7 @@
 #define GAME_H
 
 #include "video.h"
+#include "text.h"
 
 #define MAX_ENT   16     /* slot 0 is the player; DS:0x17f4 caps the rest at 9 */
 #define MAX_SHOT  16     /* the player's depth charges */
@@ -51,7 +56,7 @@ typedef struct {
 } Shot;
 
 typedef struct { int y, x; } Bullet;        /* free when y < 0x21 */
-typedef struct { int y, x, phase; } Missile;/* free when y < -0xf */
+typedef struct { int y, x, vx; } Missile;   /* free when y < -0xf; vx steers */
 
 typedef struct {
     int kind;             /* DS:0x17f6 */
@@ -61,29 +66,58 @@ typedef struct {
     int aux;              /* DS:0x1822 */
 } Ent;
 
+/* What the stage loop is doing.  The original blocks inside its fade routines
+ * (FUN_1000_82d7 and friends), which call FUN_1000_9fbc to wait; a tick-driven
+ * port has to make those states instead. */
+typedef enum {
+    GS_FADE_IN,      /* FUN_1000_82d7(0x2b8), 16 steps of 2 VSYNC ticks */
+    GS_PLAY,
+    GS_FLASH_UP,     /* FUN_1000_83b5(0x2b8), the flush bomb going off */
+    GS_FLASH_DOWN,   /* FUN_1000_8425(0x2b8) */
+    GS_FADE_OUT,     /* FUN_1000_84ae, on death */
+    GS_OVER          /* FUN_1000_a29e; the original goes to the name entry here */
+} GameState;
+
 typedef struct {
     Screen *scr;
     const PatBank *bank;
+    TextPlane txt;
+
+    GameState state;
+    int fade_step, fade_ticks;
 
     int stage;            /* DS:0x1818, 1..12 */
     int type;             /* DS:0x1816, ((stage - 1) % 4) + 1 */
+    int last_stage;       /* DS:0x1dae, the stage played before this one */
     int lives;            /* DS:0x1842 */
+    int lives_at_start;   /* DS:0x1510, so a death repeats the stage */
     long score;           /* DS:0x1db6 */
-    int frame;            /* DS:0x0dd0, the timer tick the game clocks off */
+    int frame;            /* game frames since the stage started */
     int page;             /* DS:0x1844, flips every frame */
     int nent;             /* DS:0x17f4, 9 by default, 15 with -E */
+    int wait;             /* DS:0x1820, VSYNC ticks per frame; 5 by default */
 
     int px, py, pvx;      /* slot 0 of the arrays, plus DS:0x1d6a[0] */
     int speed;            /* DS:0x1d4a, 4 at stage start; Speed Up! */
     int shot_max;         /* DS:0x1d48, 4 at stage start; Shot Max Up! */
-    int power;            /* DS:0x20c6, spreads the charges */
-    int ship;             /* DS:0x181e, picks the charge colour */
+    int power;            /* DS:0x20c6, Shot Special!: the charges spread */
+    int ship;             /* DS:0x181e, Shot Power Up!: faster, heavier charges */
     int pstate;           /* DS:0x1faa[0], 10 alive, 9.. dying */
 
     int trig;             /* buttons have to be released between charges */
     int shots_live, bullets_live, missiles_live, alive;
     int kills, quota;     /* the stage's local_2c and local_28 */
-    int cleared;
+    int died;             /* local_4e; set when the last life ran out this stage */
+
+    /* The item, DS:0x1dc0 / 0x193e / 0x1d40 / 0x1db2 / 0x1db4 / 0x1d44.
+     * `timer` is -1 while it is still rising and counts down once it has
+     * reached the surface. */
+    int item_kind, item_x, item_y, item_vx, item_vy, item_timer;
+    int msg_timer;        /* DS:0x181c, in VSYNC ticks; 0x78 when a message goes up */
+
+    /* FUN_1000_8184's three counters, which drive the animated palette, the
+     * bobbing waterline, the charge sprite and the bullet sprite. */
+    int pal_a, pal_b, pal_c;   /* DS:0x1846 (0..2), DS:0x184a (0..3), DS:0x193c (0..7) */
 
     Ent ent[MAX_ENT];
     Shot shot[MAX_SHOT];
@@ -92,12 +126,22 @@ typedef struct {
 
     unsigned pad;
     unsigned rnd;
+    int invuln;           /* test hook: tests/frames.exe --god, so a long run
+                           * can reach a stage clear without playing well */
     int base_c32, base_c16, base_c08, base_bos;
 } Game;
 
-void game_init(Game *g, Screen *scr, const PatBank *bank,
+void game_init(Game *g, Screen *scr, const PatBank *bank, const TextFont *font,
                int base_c32, int base_c16, int base_c08, int base_bos);
 void game_stage_start(Game *g, int stage);
 void game_tick(Game *g);
+
+/* How long one game frame lasts.  The original waits for DS:0x1820 VSYNC
+ * interrupts (DS:0x0dd0, incremented by the handler at 1000:bb44) and the
+ * 640x400 mode runs at about 56.4Hz, so the default of 5 is roughly 11 frames
+ * a second - which is what a 286/10MHz could manage and what makes the 0x78
+ * message timer come out as the two seconds it plainly wants to be. */
+#define VSYNC_HZ 56.42
+int game_frame_ms(const Game *g);
 
 #endif

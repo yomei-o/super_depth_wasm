@@ -10,3 +10,6 @@
 /tests/*.exe
 /depth.exe
 *.o
+
+# Python bytecode from tools/.
+__pycache__/

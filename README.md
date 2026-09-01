@@ -13,9 +13,15 @@ Windows 版の続編 **WinDepth** の移植はこちら → https://github.com/y
 
 遊べる（というより見られる）: https://yomei-o.github.io/super_depth_wasm/
 
-できていること: 640×400 16 色の画面、BFNT スプライトの読み込み（238 枚）、
-本物のパレット、自機の移動、爆雷の投下。
-まだ無いもの: 敵、アイテム、ボス、BGM、効果音、タイトル、ネーム入力。
+できていること: **type 1 (SEA) の面が一通り遊べます。**
+640×400 16 色の画面と本物のパレット（毎フレームの色替えも）、BFNT スプライト
+238 枚、自機と左右 2 門の爆雷、敵 5 種の湧き・移動・射撃・撃墜と爆発、
+追尾する敵ミサイル、アイテム 7 種とフラッシュボム、
+PC-98 のテキストプレーンによる HUD（スコア・残機・枠・メッセージ）、
+面クリアと死亡の遷移、フェード。コマ数も原典どおり（VSYNC 5 回に 1 コマ＝毎秒 11）。
+
+まだ無いもの: 残り 3 種類のステージ（SKY / SPACE / BOSS）とボス、
+BGM、効果音、タイトル、ネーム入力。
 
 ```
 ←/→ (H/L)     自機を左右に
@@ -37,8 +43,12 @@ sh tools/build_tests.sh    # -> tests/sheet.exe tests/frames.exe
 ```sh
 ./tests/sheet.exe tmp                       # BFNT を読んでシートと画面を PNG に
 ./tests/frames.exe tmp/f 20,60 --keys 0x06  # N フレーム走らせて PNG に
-node tests/wasm_check.js 40 tmp/wasm40.png  # WASM 側も同じ絵が出るか
+./tests/frames.exe tmp/a 1500 --auto --god  # 自動操縦で面クリアまで回す
+node tests/wasm_check.js 150 tmp/w.png      # WASM 側も同じ絵が出るか
+python tools/pngcrop.py tmp/f0020.png tmp/z.png 220 340 200 60 4   # 一部を拡大
 ```
+
+コンパイラは `tools/cc.sh` が探します（gcc / clang / MSVC のどれか）。
 
 
 ## 対象
@@ -73,6 +83,8 @@ Programming : alty
 | `src/bfnt.c` `src/bfnt.h` | BFNT を読んでパターン表に積む（原典 `FUN_1000_c8e0`） |
 | `src/video.c` `src/video.h` | 640×400 16 色のサーフェスと描画 |
 | `src/pal.h` | EXE から取り出したパレット |
+| `src/text.c` `src/text.h` | PC-98 のテキストプレーン。`DEPTH.FNT` の外字で HUD を出す |
+| `src/tables.h` | EXE から取り出した得点表と敵の編成表 |
 | `src/game.c` `src/game.h` | ゲーム本体（解読できた範囲） |
 | `src/main_win32.c` | ネイティブ（8bpp DIB） |
 | `src/main_wasm.c` | Emscripten（`putImageData` のみ、WebGL 不使用） |
@@ -86,6 +98,11 @@ Programming : alty
 python tools/lzh.py DEPTH100.LZH          # 一覧（CRC 検査つき）
 python tools/lzh.py DEPTH100.LZH orig     # 展開
 ```
+
+**`tools/cc.sh`** — ネイティブ用の C コンパイラを探して叩くラッパ。
+gcc / clang が無ければ Visual Studio の `cl.exe` を、開発者プロンプト無しで使います。
+
+**`tools/pngcrop.py`** — 書き出した PNG の一部を切り出して拡大。細部の確認用。
 
 **`tools/bfnt.py`** — BFNT のスプライトを PNG のコンタクトシートに。
 
@@ -183,11 +200,13 @@ WinDepth には無いパワーアップが一通りあります。
 3. ~~パレット~~ 済 — `src/pal.h`（`DS:0x02b8` が面中の色）
 4. ~~トップレベルの流れ~~ 済 — ステージ 1..12 を 4 種類の関数で巡回
 5. ~~type 1 (SEA) の敵・弾・当たり判定・得点~~ 済 — `src/game.c`
-6. アイテムとパワーアップ（抽選表 `DS:0x0524` は判明済み）
-7. スコア表示（PC-98 のテキストプレーン + `DEPTH.FNT` の外字）
-8. クリア／死亡の遷移（いまは推定で仮置き）
-9. 残り 3 ステージとボス
+6. ~~アイテムとパワーアップ~~ 済 — 抽選表 `DS:0x0524` と `FUN_1000_9d84` の補正まで
+7. ~~スコア表示~~ 済 — PC-98 のテキストプレーン + `DEPTH.FNT` の外字（`src/text.c`）
+8. ~~クリア／死亡の遷移~~ 済 — 出口は `FUN_1000_13e0` の先頭にあった
+9. ~~フレーム間隔~~ 済 — `DS:0x0dd0` は VSYNC のカウンタ。VSYNC/5 ＝ 毎秒 11 コマ
 10. BGM（BGMLIB の MML を矩形波 1 音で）と効果音
+11. 残り 3 ステージとボス
+12. タイトルとネーム入力
 
 **具体的な次の手順・判明しているアドレス・踏んだ罠は
 [RESUME.md](RESUME.md) の冒頭「引き継ぎ」にまとめてあります。**

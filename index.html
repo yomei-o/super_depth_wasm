@@ -46,9 +46,14 @@
 <div id="note">
   <strong>まだ移植の途中です。</strong>
   Bio_100% の PC-98 版 <em>Super Depth</em> (1991) を Ghidra で解析して C に
-  書き直しているところで、今できているのは 640×400 16 色の画面、BFNT
-  スプライトの読み込み、本物のパレット、自機の移動と爆雷の投下だけです。
-  敵・アイテム・ボス・BGM はまだ入っていません。
+  書き直しています。今できているのは type 1 (SEA) の面一式
+  ——640×400 16 色の画面と本物のパレット、BFNT スプライト 238 枚、自機と
+  左右 2 門の爆雷、敵 5 種の湧き・移動・射撃・撃墜、追尾ミサイル、
+  アイテム 7 種とフラッシュボム、スコアと残機の表示（PC-98 のテキストプレーン）、
+  面クリアと死亡の遷移——です。
+  ボス面・残り 3 種のステージ・タイトル・BGM はまだ入っていません。
+  <br>
+  コマ数も原典どおりで、VSYNC 5 回に 1 フレーム＝毎秒 11 コマです。
   解析メモは <a href="https://github.com/yomei-o/super_depth_wasm">GitHub</a> の
   RESUME.md にあります。
 </div>
@@ -78,12 +83,18 @@ var Module = {
     statusEl.textContent =
       `${w}x${h} 16色 / パターン ${Module._sd_patterns()} 枚`;
 
-    setInterval(() => {
+    // 原典のフレーム間隔で回す。DS:0x0dd0 は VSYNC 割り込みのカウンタで、
+    // 各面のループはそれが DS:0x1820（既定 5）に達するまで待つ。640x400 の
+    // 垂直同期が約 56.4Hz なので、1 フレーム約 89ms＝毎秒 11 コマ。
+    // 種別 3/4 の面は 1 ティック速いので、毎回聞き直す。
+    const step = () => {
       Module._sd_tick(pad);
       const p = Module._sd_framebuffer();
       img.data.set(Module.HEAPU8.subarray(p, p + w * h * 4));
       ctx2d.putImageData(img, 0, 0);
-    }, 17);
+      setTimeout(step, Module._sd_frame_ms());
+    };
+    step();
   }
 };
 

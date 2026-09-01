@@ -9,6 +9,12 @@
  * One byte per pixel holding a palette index 0..15, rather than the four
  * separate bit planes the real VRAM has.  Nothing in the game reads VRAM back
  * per plane, so the layout is free.
+ *
+ * The palette carries eight entries past the graphics sixteen.  The PC-98's
+ * text plane is a separate overlay with its own eight fixed digital colours,
+ * unaffected by the graphics palette the game animates every frame, so the HUD
+ * (src/text.c) draws in indices SCR_TEXT..SCR_TEXT+7 rather than borrowing a
+ * graphics colour that is about to change underneath it.
  */
 #ifndef VIDEO_H
 #define VIDEO_H
@@ -18,9 +24,12 @@
 #define SCR_W 640
 #define SCR_H 400
 
+#define SCR_TEXT   16              /* first of the eight text-plane colours */
+#define SCR_COLOURS 24             /* 16 graphics + 8 text */
+
 typedef struct {
     unsigned char px[SCR_W * SCR_H];
-    unsigned char pal[16][3];      /* 8 bits per channel, ready for a display */
+    unsigned char pal[SCR_COLOURS][3];  /* 8 bits per channel, ready for a display */
     const PatBank *bank;
 } Screen;
 
@@ -31,6 +40,12 @@ void scr_clear(Screen *s, unsigned char index);
  * (FUN_1000_ba6a) or set one entry (FUN_1000_ba8c). */
 void scr_palette(Screen *s, const unsigned char table[16][3]);
 void scr_colour(Screen *s, int index, int r, int g, int b);
+
+/* Fade in from black (FUN_1000_82d7), flash out to white (FUN_1000_83b5) and
+ * back (FUN_1000_8425).  `level` runs 0..15; each clamps every channel of the
+ * table against it, from below for the fade and from above for the flash. */
+void scr_palette_fade(Screen *s, const unsigned char table[16][3], int level);
+void scr_palette_flash(Screen *s, const unsigned char table[16][3], int level);
 
 /* Draw pattern `id` with its top-left at (x,y), clipped, treating index 0 as
  * transparent - the sprite path (FUN_1000_c788). */

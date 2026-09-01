@@ -3,8 +3,17 @@
 
 void scr_init(Screen *s, const PatBank *bank)
 {
+    int i;
+
     memset(s, 0, sizeof *s);
     s->bank = bank;
+    /* The text plane's eight digital colours: bit0 blue, bit1 red, bit2 green,
+     * matching how the attribute byte packs them. */
+    for (i = 0; i < 8; i++) {
+        s->pal[SCR_TEXT + i][0] = (i & 2) ? 0xff : 0;
+        s->pal[SCR_TEXT + i][1] = (i & 4) ? 0xff : 0;
+        s->pal[SCR_TEXT + i][2] = (i & 1) ? 0xff : 0;
+    }
 }
 
 void scr_clear(Screen *s, unsigned char index)
@@ -28,6 +37,32 @@ void scr_colour(Screen *s, int index, int r, int g, int b)
     s->pal[index][0] = (unsigned char)((r & 15) * 17);
     s->pal[index][1] = (unsigned char)((g & 15) * 17);
     s->pal[index][2] = (unsigned char)((b & 15) * 17);
+}
+
+void scr_palette_fade(Screen *s, const unsigned char table[16][3], int level)
+{
+    int i, c;
+
+    for (i = 0; i < 16; i++) {
+        int v[3];
+
+        for (c = 0; c < 3; c++)
+            v[c] = table[i][c] < level ? table[i][c] : level;
+        scr_colour(s, i, v[0], v[1], v[2]);
+    }
+}
+
+void scr_palette_flash(Screen *s, const unsigned char table[16][3], int level)
+{
+    int i, c;
+
+    for (i = 0; i < 16; i++) {
+        int v[3];
+
+        for (c = 0; c < 3; c++)
+            v[c] = level < table[i][c] ? table[i][c] : level;
+        scr_colour(s, i, v[0], v[1], v[2]);
+    }
 }
 
 static void blit(Screen *s, int x, int y, int id, int opaque)

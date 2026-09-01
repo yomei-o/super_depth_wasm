@@ -11,11 +11,12 @@ EMCC="$EMSDK/upstream/emscripten/emcc.exe"
 [ -f "$EMCC" ] || { echo "emcc not found at $EMCC" >&2; exit 1; }
 
 EXPORTS=_main,_sd_init,_sd_tick,_sd_width,_sd_height,_sd_framebuffer
-EXPORTS=$EXPORTS,_sd_patterns,_sd_stage,_sd_set_stage
+EXPORTS=$EXPORTS,_sd_patterns,_sd_stage,_sd_set_stage,_sd_score,_sd_lives
+EXPORTS=$EXPORTS,_sd_frame_ms
 
 sh tools/lowpri.sh "$EMCC" -O2 -Wall -Wextra -Isrc \
    -o superdepth.js \
-   src/main_wasm.c src/game.c src/video.c src/bfnt.c \
+   src/main_wasm.c src/game.c src/video.c src/text.c src/bfnt.c \
    --embed-file orig/DEPTH.C32@/orig/DEPTH.C32 \
    --embed-file orig/DEPTH.C16@/orig/DEPTH.C16 \
    --embed-file orig/DEPTH.C08@/orig/DEPTH.C08 \

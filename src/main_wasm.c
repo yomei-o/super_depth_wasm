@@ -14,10 +14,12 @@
 #include "bfnt.h"
 #include "video.h"
 #include "game.h"
+#include "text.h"
 
-static PatBank g_bank;
-static Screen  g_scr;
-static Game    g_game;
+static PatBank  g_bank;
+static Screen   g_scr;
+static Game     g_game;
+static TextFont g_font;
 static unsigned char g_rgba[SCR_W * SCR_H * 4];
 static int g_ready;
 
@@ -29,7 +31,7 @@ static void expand(void)
     int i, n = SCR_W * SCR_H;
 
     memset(lut, 0, sizeof lut);
-    for (i = 0; i < 16; i++)
+    for (i = 0; i < SCR_COLOURS; i++)
         lut[i] = 0xff000000u | ((unsigned)g_scr.pal[i][2] << 16) |
                  ((unsigned)g_scr.pal[i][1] << 8) | g_scr.pal[i][0];
     for (i = 0; i < n; i++)
@@ -47,8 +49,11 @@ EMSCRIPTEN_KEEPALIVE int sd_init(void)
     for (i = 0; i < 4; i++)
         if ((base[i] = pat_load(&g_bank, files[i])) < 0)
             return -1;
+    if (txt_font_load(&g_font, "/orig/DEPTH.FNT") < 0)
+        return -1;
     scr_init(&g_scr, &g_bank);
-    game_init(&g_game, &g_scr, &g_bank, base[0], base[1], base[2], base[3]);
+    game_init(&g_game, &g_scr, &g_bank, &g_font,
+              base[0], base[1], base[2], base[3]);
     g_ready = 1;
     return 0;
 }
@@ -58,6 +63,10 @@ EMSCRIPTEN_KEEPALIVE int sd_height(void) { return SCR_H; }
 EMSCRIPTEN_KEEPALIVE unsigned char *sd_framebuffer(void) { return g_rgba; }
 EMSCRIPTEN_KEEPALIVE int sd_patterns(void) { return g_bank.count; }
 EMSCRIPTEN_KEEPALIVE int sd_stage(void) { return g_game.stage; }
+EMSCRIPTEN_KEEPALIVE int sd_score(void) { return (int)g_game.score; }
+EMSCRIPTEN_KEEPALIVE int sd_lives(void) { return g_game.lives; }
+/* How long one game frame lasts: the original waits DS:0x1820 VSYNC ticks. */
+EMSCRIPTEN_KEEPALIVE int sd_frame_ms(void) { return game_frame_ms(&g_game); }
 
 EMSCRIPTEN_KEEPALIVE void sd_tick(unsigned pad)
 {

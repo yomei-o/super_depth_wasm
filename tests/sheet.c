@@ -24,13 +24,13 @@ static void pal256(const Screen *s, unsigned char out[256][3])
     int i;
 
     memset(out, 0, 256 * 3);
-    for (i = 0; i < 16; i++) {
+    for (i = 0; i < SCR_COLOURS; i++) {
         out[i][0] = s->pal[i][0];
         out[i][1] = s->pal[i][1];
         out[i][2] = s->pal[i][2];
     }
     /* Make the unused indices obvious if anything ever writes one. */
-    for (i = 16; i < 256; i++) {
+    for (i = SCR_COLOURS; i < 256; i++) {
         out[i][0] = 0xff;
         out[i][1] = 0x00;
         out[i][2] = 0xff;
