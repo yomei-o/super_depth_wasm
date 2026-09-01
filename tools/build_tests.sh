@@ -8,5 +8,6 @@ cd "$(dirname "$0")/.."
 sh tools/cc.sh -O2 -Wall -Wextra -Isrc -o tests/sheet.exe \
    tests/sheet.c tests/png.c src/bfnt.c src/video.c
 sh tools/cc.sh -O2 -Wall -Wextra -Isrc -o tests/frames.exe \
-   tests/frames.c tests/png.c src/bfnt.c src/video.c src/text.c src/game.c
-echo "built tests/sheet.exe tests/frames.exe"
+   tests/frames.c tests/png.c src/bfnt.c src/video.c src/text.c src/sound.c src/game.c
+sh tools/cc.sh -O2 -Wall -Wextra -Isrc -o tests/tune.exe    tests/tune.c src/sound.c
+echo "built tests/sheet.exe tests/frames.exe tests/tune.exe"

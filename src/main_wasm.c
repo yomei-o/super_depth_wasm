@@ -15,11 +15,15 @@
 #include "video.h"
 #include "game.h"
 #include "text.h"
+#include "sound.h"
 
 static PatBank  g_bank;
 static Screen   g_scr;
 static Game     g_game;
 static TextFont g_font;
+static SndData  g_snddata;
+static Snd      g_snd;
+static short    g_pcm[8192];
 static unsigned char g_rgba[SCR_W * SCR_H * 4];
 static int g_ready;
 
@@ -54,6 +58,10 @@ EMSCRIPTEN_KEEPALIVE int sd_init(void)
     scr_init(&g_scr, &g_bank);
     game_init(&g_game, &g_scr, &g_bank, &g_font,
               base[0], base[1], base[2], base[3]);
+    if (snd_load(&g_snddata, "/orig/DEPTH.BGM", "/orig/DEPTH.EFS") == 0) {
+        snd_init(&g_snd, &g_snddata);
+        game_sound(&g_game, &g_snd);
+    }
     g_ready = 1;
     return 0;
 }
@@ -67,6 +75,26 @@ EMSCRIPTEN_KEEPALIVE int sd_score(void) { return (int)g_game.score; }
 EMSCRIPTEN_KEEPALIVE int sd_lives(void) { return g_game.lives; }
 /* How long one game frame lasts: the original waits DS:0x1820 VSYNC ticks. */
 EMSCRIPTEN_KEEPALIVE int sd_frame_ms(void) { return game_frame_ms(&g_game); }
+
+/* The beeper.  The page pulls PCM at SND_RATE and resamples it into whatever
+ * its AudioContext runs at; nothing is generated unless it asks, so a page that
+ * never starts audio costs nothing. */
+EMSCRIPTEN_KEEPALIVE int sd_audio_rate(void) { return SND_RATE; }
+EMSCRIPTEN_KEEPALIVE int sd_audio_max(void)
+{
+    return (int)(sizeof g_pcm / sizeof g_pcm[0]);
+}
+EMSCRIPTEN_KEEPALIVE short *sd_audio(int frames)
+{
+    int cap = (int)(sizeof g_pcm / sizeof g_pcm[0]);
+
+    if (frames > cap)
+        frames = cap;
+    if (frames < 0)
+        frames = 0;
+    snd_render(&g_snd, g_pcm, frames);
+    return g_pcm;
+}
 
 EMSCRIPTEN_KEEPALIVE void sd_tick(unsigned pad)
 {

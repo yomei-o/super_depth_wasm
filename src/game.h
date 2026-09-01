@@ -12,6 +12,7 @@
  *   - the HUD: score, lives, the frame, the stage banner - the text plane
  *   - the per-frame palette animation and the fades
  *   - the frame rate: VSYNC / DS:0x1820, i.e. 56.4Hz / 5
+ *   - the music and the sound effects (src/sound.c)
  *
  * Still to come: the other three stage types, the bosses, the title screen,
  * the name entry and the ranking, and all of the sound.
@@ -32,6 +33,7 @@
 
 #include "video.h"
 #include "text.h"
+#include "sound.h"
 
 #define MAX_ENT   16     /* slot 0 is the player; DS:0x17f4 caps the rest at 9 */
 #define MAX_SHOT  16     /* the player's depth charges */
@@ -81,6 +83,7 @@ typedef enum {
 typedef struct {
     Screen *scr;
     const PatBank *bank;
+    Snd *snd;              /* optional; nothing here needs it to be there */
     TextPlane txt;
 
     GameState state;
@@ -133,6 +136,9 @@ typedef struct {
 
 void game_init(Game *g, Screen *scr, const PatBank *bank, const TextFont *font,
                int base_c32, int base_c16, int base_c08, int base_bos);
+/* Give the game a synth to talk to.  Call it before game_stage_start so the
+ * first stage gets its music. */
+void game_sound(Game *g, Snd *snd);
 void game_stage_start(Game *g, int stage);
 void game_tick(Game *g);
 

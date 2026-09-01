@@ -18,6 +18,7 @@
 #include "video.h"
 #include "game.h"
 #include "text.h"
+#include "sound.h"
 
 #define WD_TIMER_ID 1
 
@@ -25,6 +26,70 @@ static PatBank  g_bank;
 static Screen   g_scr;
 static Game     g_game;
 static TextFont g_font;
+static SndData  g_snddata;
+static Snd      g_snd;
+
+/* The beeper, through waveOut.  Eight short buffers are kept queued and the
+ * frame timer tops them up; at eleven frames a second that is a refill every
+ * 89ms against 372ms of queue, which is enough slack not to click. */
+#define WAV_BUFS   8
+#define WAV_FRAMES 1024
+static HWAVEOUT g_wave;
+static WAVEHDR  g_whdr[WAV_BUFS];
+static short    g_wbuf[WAV_BUFS][WAV_FRAMES];
+
+static void audio_open(void)
+{
+    WAVEFORMATEX fmt;
+    int i;
+
+    memset(&fmt, 0, sizeof fmt);
+    fmt.wFormatTag = WAVE_FORMAT_PCM;
+    fmt.nChannels = 1;
+    fmt.nSamplesPerSec = SND_RATE;
+    fmt.wBitsPerSample = 16;
+    fmt.nBlockAlign = 2;
+    fmt.nAvgBytesPerSec = SND_RATE * 2;
+    if (waveOutOpen(&g_wave, WAVE_MAPPER, &fmt, 0, 0, CALLBACK_NULL) != MMSYSERR_NOERROR) {
+        g_wave = NULL;
+        return;
+    }
+    for (i = 0; i < WAV_BUFS; i++) {
+        memset(&g_whdr[i], 0, sizeof g_whdr[i]);
+        g_whdr[i].lpData = (LPSTR)g_wbuf[i];
+        g_whdr[i].dwBufferLength = sizeof g_wbuf[i];
+        waveOutPrepareHeader(g_wave, &g_whdr[i], sizeof g_whdr[i]);
+        g_whdr[i].dwFlags |= WHDR_DONE;
+    }
+}
+
+static void audio_pump(void)
+{
+    int i;
+
+    if (!g_wave)
+        return;
+    for (i = 0; i < WAV_BUFS; i++)
+        if (g_whdr[i].dwFlags & WHDR_DONE) {
+            snd_render(&g_snd, g_wbuf[i], WAV_FRAMES);
+            g_whdr[i].dwFlags &= ~WHDR_DONE;
+            g_whdr[i].dwBufferLength = sizeof g_wbuf[i];
+            waveOutWrite(g_wave, &g_whdr[i], sizeof g_whdr[i]);
+        }
+}
+
+static void audio_close(void)
+{
+    int i;
+
+    if (!g_wave)
+        return;
+    waveOutReset(g_wave);
+    for (i = 0; i < WAV_BUFS; i++)
+        waveOutUnprepareHeader(g_wave, &g_whdr[i], sizeof g_whdr[i]);
+    waveOutClose(g_wave);
+    g_wave = NULL;
+}
 static HWND    g_hwnd;
 static BITMAPINFO *g_bmi;
 static char    g_dir[MAX_PATH];
@@ -88,6 +153,7 @@ static LRESULT CALLBACK wndproc(HWND h, UINT msg, WPARAM wp, LPARAM lp)
 
         read_input();
         game_tick(&g_game);
+        audio_pump();
         present(hdc);
         ReleaseDC(h, hdc);
         /* Types 3 and 4 run one VSYNC tick faster, so the timer follows. */
@@ -115,6 +181,7 @@ static LRESULT CALLBACK wndproc(HWND h, UINT msg, WPARAM wp, LPARAM lp)
         DestroyWindow(h);
         return 0;
     case WM_DESTROY:
+        audio_close();
         KillTimer(h, WD_TIMER_ID);
         PostQuitMessage(0);
         return 0;
@@ -191,6 +258,18 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show)
 
     game_init(&g_game, &g_scr, &g_bank, &g_font,
               base[0], base[1], base[2], base[3]);
+    {
+        char bgm[MAX_PATH], efs[MAX_PATH];
+
+        sprintf(bgm, "%s\\DEPTH.BGM", g_dir);
+        sprintf(efs, "%s\\DEPTH.EFS", g_dir);
+        if (snd_load(&g_snddata, bgm, efs) == 0) {
+            snd_init(&g_snd, &g_snddata);
+            game_sound(&g_game, &g_snd);
+            audio_open();
+            audio_pump();
+        }
+    }
     SetTimer(g_hwnd, WD_TIMER_ID, (UINT)game_frame_ms(&g_game), NULL);
     ShowWindow(g_hwnd, show);
     UpdateWindow(g_hwnd);

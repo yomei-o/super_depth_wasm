@@ -88,6 +88,31 @@ static int sgn(int v) { return v > 0 ? 1 : (v < 0 ? -1 : 0); }
  * -1; else 1`, i.e. the direction from x toward the middle of the field. */
 static int toward_middle(int x) { return sgn(0x140 - x); }
 
+/* FUN_1000_cff4.  The numbers are the original's call sites:
+ *   1 dropping a charge   2 an enemy firing   3 an enemy destroyed
+ *   4 the ship hit, and the flush bomb        6 picking an item up */
+static void sfx(Game *g, int n)
+{
+    if (g->snd)
+        snd_effect(g->snd, n);
+}
+
+/* FUN_1000_cf6a(type + 2) + FUN_1000_cf44 + FUN_1000_d046 at the top of every
+ * stage: SEA, SKY, SPACE and BOSS are songs 3, 4, 5 and 6. */
+static void music(Game *g, int song, int loop)
+{
+    if (!g->snd)
+        return;
+    g->snd->loop = loop;
+    snd_play(g->snd, song);
+}
+
+void game_sound(Game *g, Snd *snd)
+{
+    g->snd = snd;
+    music(g, g->type + 2, 1);
+}
+
 int game_frame_ms(const Game *g)
 {
     /* Types 3 and 4 wait for one VSYNC less than the others. */
@@ -300,6 +325,7 @@ void game_stage_start(Game *g, int stage)
     g->fade_step = 0;
     g->fade_ticks = 0;
     scr_palette_fade(g->scr, SD_PAL_GAME, 0);
+    music(g, g->type + 2, 1);
 }
 
 /* ------------------------------------------------------------------ player */
@@ -322,6 +348,7 @@ static void fire(Game *g, int dx, int spread)
     g->shot[slot].vx = g->power * spread;
     g->shots_live++;
     g->trig = 0;
+    sfx(g, SFX_CHARGE);
 }
 
 /* Returns 0 once the ship's dying animation has run out, which ends the stage. */
@@ -480,6 +507,7 @@ static void update_enemy(Game *g, int idx)
                     g->bullet[s].y = e->y + 0xc;
                     g->bullet[s].x = e->x + 0x18;
                     g->bullets_live++;
+                    sfx(g, SFX_ENEMY);
                 }
             }
             break;
@@ -494,6 +522,7 @@ static void update_enemy(Game *g, int idx)
                     g->missile[s].x = e->x + 0x18;
                     g->missile[s].vx = 0;
                     g->missiles_live++;
+                    sfx(g, SFX_ENEMY);
                 }
             }
             break;
@@ -507,6 +536,7 @@ static void update_enemy(Game *g, int idx)
                     g->bullet[s].y = e->y + 0x10;
                     g->bullet[s].x = e->x + 0x10;
                     g->bullets_live++;
+                    sfx(g, SFX_ENEMY);
                 }
             }
             break;
@@ -525,6 +555,7 @@ static void update_enemy(Game *g, int idx)
                     g->missile[s].vx = 0;
                     g->missiles_live++;
                 }
+                sfx(g, SFX_ENEMY);
                 e->vx = (sd_rand(g) % 4 + 5) * toward_middle(e->x);
             }
             break;
@@ -545,6 +576,7 @@ static void kill_enemy(Game *g, int idx)
     e->vx = 0;
     g->kills++;
     hud_score(g);
+    sfx(g, SFX_KILL);
 }
 
 /* -------------------------------------------------------------------- items */
@@ -638,6 +670,7 @@ static void item_flush(Game *g)
     for (i = 0; i < MAX_MISSILE; i++)
         g->missile[i].y = -0x10;
     g->missiles_live = 0;
+    sfx(g, SFX_HIT);            /* the original reuses effect 4 for the bomb */
     g->state = GS_FLASH_UP;
     g->fade_step = 0;
     g->fade_ticks = 0;
@@ -659,6 +692,7 @@ static void update_item(Game *g)
         else
             item_apply(g);
         msg_item(g);
+        sfx(g, SFX_ITEM);
         g->item_kind = 0;
         return;
     }
@@ -737,8 +771,10 @@ static void update_shots(Game *g)
 
 static void hit_player(Game *g)
 {
-    if (g->pstate == 10 && !g->invuln)
+    if (g->pstate == 10 && !g->invuln) {
         g->pstate = 9;
+        sfx(g, SFX_HIT);
+    }
 }
 
 static void update_bullets(Game *g)
@@ -1066,8 +1102,11 @@ static void draw_all(Game *g)
 static void leave_stage(Game *g)
 {
     msg_clear(g);
+    if (g->snd)
+        snd_stop(g->snd);                /* FUN_1000_cf2c */
     if (g->died && g->lives == 0) {
         txt_puts(&g->txt, 10, 0x1e, 0x41, "Game Over");
+        music(g, SND_GAMEOVER, 0);       /* FUN_1000_a29e; it does not loop */
         g->state = GS_OVER;
         return;
     }

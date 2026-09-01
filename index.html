@@ -42,6 +42,7 @@
   <kbd>X</kbd>/<kbd>Enter</kbd> 右の爆雷 &nbsp;
   <kbd>1</kbd>…<kbd>9</kbd> ステージ切替
 </div>
+<div class="keys">音はブラウザの都合で、最初にキーを押すかクリックしたときに出ます。</div>
 <div id="status">読み込み中…</div>
 <div id="note">
   <strong>まだ移植の途中です。</strong>
@@ -51,7 +52,8 @@
   左右 2 門の爆雷、敵 5 種の湧き・移動・射撃・撃墜、追尾ミサイル、
   アイテム 7 種とフラッシュボム、スコアと残機の表示（PC-98 のテキストプレーン）、
   面クリアと死亡の遷移——です。
-  ボス面・残り 3 種のステージ・タイトル・BGM はまだ入っていません。
+  BGM と効果音（PC-98 内蔵ビープ 1 音、BGMLIB の MML をそのまま鳴らしています）。
+  ボス面・残り 3 種のステージ・タイトルはまだ入っていません。
   <br>
   コマ数も原典どおりで、VSYNC 5 回に 1 フレーム＝毎秒 11 コマです。
   解析メモは <a href="https://github.com/yomei-o/super_depth_wasm">GitHub</a> の
@@ -71,6 +73,37 @@ const cv = document.getElementById('screen');
 const ctx2d = cv.getContext('2d', { alpha: false });
 const statusEl = document.getElementById('status');
 let pad = 0;
+
+// PC-98 のビープ 1 音を鳴らす。ブラウザは操作されるまで音を出させて
+// くれないので、最初のキー入力かクリックで組み立てる。
+// WASM 側は 22050Hz で作るので、AudioContext のレートに合わせて詰め直す。
+let audio = null;
+function startAudio() {
+  if (audio || !Module._sd_audio_rate) return;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  const ctx = new AC();
+  const srcRate = Module._sd_audio_rate();
+  const ratio = srcRate / ctx.sampleRate;
+  const node = ctx.createScriptProcessor(2048, 0, 1);
+  let pos = 0;                   // 端数のたまり
+  node.onaudioprocess = e => {
+    const out = e.outputBuffer.getChannelData(0);
+    const need = Math.min(Math.ceil(out.length * ratio) + 2,
+                          Module._sd_audio_max());
+    const p = Module._sd_audio(need);
+    const pcm = new Int16Array(Module.HEAPU8.buffer, p, need);
+    for (let i = 0; i < out.length; i++) {
+      const j = Math.min(need - 1, Math.floor(pos));
+      out[i] = pcm[j] / 32768;
+      pos += ratio;
+    }
+    pos -= Math.floor(pos);      // 次のブロックの頭に戻す
+  };
+  node.connect(ctx.destination);
+  ctx.resume();
+  audio = { ctx, node };
+}
 
 var Module = {
   onRuntimeInitialized() {
@@ -98,6 +131,8 @@ var Module = {
   }
 };
 
+addEventListener('pointerdown', startAudio);
+addEventListener('keydown', () => startAudio(), { once: true });
 addEventListener('keydown', e => {
   if (e.code >= 'Digit1' && e.code <= 'Digit9') {
     Module._sd_set_stage(+e.code.slice(5));
