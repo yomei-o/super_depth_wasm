@@ -130,10 +130,14 @@ static void boss_start(Game *g)
         g->ent[1].kind = bos + 0xc;
         g->ent[2].kind = bos + 0x14;
         g->ent[2].y = 10;
-        for (i = 3; i < 7; i++)
-            g->ent[i].kind = bos + 5;
-        for (i = 7; i < 12; i++)
+        /* The tail is not one shape repeated: 1000:1000_5818's init gives
+         * slot 3 and slots 9..11 one pattern, 4..8 another and 12..14 a
+         * third, which is what makes it taper. */
+        g->ent[3].kind = bos + 5;
+        for (i = 4; i < 9; i++)
             g->ent[i].kind = bos + 4;
+        for (i = 9; i < 12; i++)
+            g->ent[i].kind = bos + 5;
         for (i = 12; i < 15; i++)
             g->ent[i].kind = bos + 6;
     } else {
@@ -812,13 +816,18 @@ static void boss_motion(Game *g)
     g->px += g->pvx;
     g->py += g->pvy;
     if (b == 2) {
-        /* The tail takes the positions of the segment in front of it. */
-        for (i = MAX_ENT - 2; i >= 3; i--) {
-            g->ent[i + 1].x = g->ent[i].x;
-            g->ent[i + 1].y = g->ent[i].y;
+        /* The tail takes the positions of the segment in front of it - but
+         * only while the boss is alive; the original does this inside the
+         * `still alive` half of its draw, so a dying one freezes in place
+         * instead of collapsing into its own head. */
+        if (g->boss_hits < BOSS_HP) {
+            for (i = MAX_ENT - 2; i >= 4; i--) {
+                g->ent[i].x = g->ent[i - 1].x;
+                g->ent[i].y = g->ent[i - 1].y;
+            }
+            g->ent[3].x = vx + g->ent[1].x + 0x10;
+            g->ent[3].y = vy + g->ent[1].y + 0x14;
         }
-        g->ent[3].x = vx + g->ent[1].x + 0x10;
-        g->ent[3].y = vy + g->ent[1].y + 0x14;
         for (i = 1; i < 3; i++) {
             g->ent[i].x += vx;
             g->ent[i].y += vy;
