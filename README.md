@@ -13,7 +13,7 @@ Windows 版の続編 **WinDepth** の移植はこちら → https://github.com/y
 
 遊べる（というより見られる）: https://yomei-o.github.io/super_depth_wasm/
 
-できていること: **4 種類の面が全部遊べて、音も鳴ります。**
+できていること: **タイトルから始まって 4 種類の面が全部遊べて、音も鳴ります。**
 640×400 16 色の画面と本物のパレット（毎フレームの色替えも）、BFNT スプライト
 238 枚、敵 5 種の湧き・移動・射撃・撃墜と爆発、アイテム 7 種とフラッシュボム、
 PC-98 のテキストプレーンによる HUD（スコア・残機・枠・レーダー・メッセージ）、
@@ -29,7 +29,8 @@ PC-98 のテキストプレーンによる HUD（スコア・残機・枠・レ�
 | 3 SPACE | 宇宙。自機は上下に動いて左右へ撃つ。左右キーで世界のほうが流れる |
 | 4 BOSS | ボス 3 体（ステージ 4 / 8 / 12）。弱点に 20 発で倒せる |
 
-まだ無いもの: 面と面のあいだの演出、タイトル、ネーム入力。
+まだ無いもの: タイトルの Record（ランキング）と Exit、ネーム入力、
+面と面のあいだの演出。
 
 ```
 ←/→ (H/L)     自機を左右に
@@ -99,6 +100,7 @@ Programming : alty
 | `src/sound.c` `src/sound.h` | BGMLIB の MML と効果音を矩形波 1 音で |
 | `src/game.c` `src/game.h` `src/gameint.h` | 面の種別に共通な部分とフレームの骨格 |
 | `src/stage_sea.c` `src/stage_sky.c` `src/stage_space.c` `src/stage_boss.c` | 面 1 本ずつ |
+| `src/title.c` | タイトル画面（ロゴは `DEPTH.FNT` の外字） |
 | `src/main_win32.c` | ネイティブ（8bpp DIB） |
 | `src/main_wasm.c` | Emscripten（`putImageData` のみ、WebGL 不使用） |
 
@@ -114,6 +116,14 @@ python tools/lzh.py DEPTH100.LZH orig     # 展開
 
 **`tools/cc.sh`** — ネイティブ用の C コンパイラを探して叩くラッパ。
 gcc / clang が無ければ Visual Studio の `cl.exe` を、開発者プロンプト無しで使います。
+
+**`tools/disasm.py`** — コードセグメントの一部を 16bit で逆アセンブル（capstone）。
+関数名・PC-98 のポート名・DGROUP の文字列を注釈します。Ghidra の 16bit 出力が
+引数を落とすので、タイトル画面はこれで読みました。
+
+```sh
+python tools/disasm.py 0x8ae2 0x200
+```
 
 **`tools/pngcrop.py`** — 書き出した PNG の一部を切り出して拡大。細部の確認用。
 
@@ -135,6 +145,8 @@ python tools/bfnt.py orig/DEPTH.C32 tmp/c32.png --zoom 2 --cols 8
 ## 今の画面
 
 `tests/frames.exe` が書き出したそのままのものです。
+
+![title](docs/screen_title.png)
 
 ![SEA](docs/screen_stage1.png)
 ![SEA](docs/screen_stage1_b.png)
@@ -223,7 +235,8 @@ WinDepth には無いパワーアップが一通りあります。
 10. ~~BGM と効果音~~ 済 — `src/sound.c`（8253 の割り込みごと再現）
 11. ~~種別 2 (SKY) と 3 (SPACE)~~ 済
 12. ~~種別 4（ボス面）~~ 済 — ボス 3 体
-13. 面と面のあいだの演出、タイトル、ネーム入力
+13. ~~タイトル画面~~ 済 — `src/title.c`
+14. Record（ランキング）とネーム入力、面と面のあいだの演出
 
 **具体的な次の手順・判明しているアドレス・踏んだ罠は
 [RESUME.md](RESUME.md) の冒頭「引き継ぎ」にまとめてあります。**

@@ -210,7 +210,7 @@ void game_init(Game *g, Screen *scr, const PatBank *bank, const TextFont *font,
     g->shot_max = 4;
     g->last_stage = 1;
     scr_palette(scr, g->pal);
-    game_stage_start(g, 1);
+    title_start(g);
 }
 
 /* FUN_1000_8098 - fill the entity slots from the stage's roster. */
@@ -613,6 +613,9 @@ void game_tick(Game *g)
     int i;
 
     switch (g->state) {
+    case GS_TITLE:
+        title_tick(g);
+        return;
     case GS_FADE_IN:
         scr_palette_fade(g->scr, g->pal, g->fade_step);
         draw_all(g);
@@ -646,17 +649,11 @@ void game_tick(Game *g)
         return;
     case GS_OVER:
         draw_all(g);
-        /* The original goes to the name entry and the ranking here, neither of
-         * which is written yet; a button starts a new game instead. */
-        if (g->pad & (PAD_A | PAD_B)) {
-            g->lives = 3;
-            g->score = 0;
-            g->speed = 4;
-            g->shot_max = 4;
-            g->ship = g->power = 0;
-            g->last_stage = 1;
-            game_stage_start(g, 1);
-        }
+        /* The original goes to the name entry and the ranking (FUN_1000_aa92)
+         * and then back to the title; the name entry is not written, so a
+         * button goes straight back to the title. */
+        if (g->pad & (PAD_A | PAD_B))
+            title_start(g);
         return;
     case GS_PLAY:
         break;

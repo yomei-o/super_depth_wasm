@@ -85,6 +85,7 @@ typedef struct {
  * (FUN_1000_82d7 and friends), which call FUN_1000_9fbc to wait; a tick-driven
  * port has to make those states instead. */
 typedef enum {
+    GS_TITLE,        /* FUN_1000_8ae2, src/title.c */
     GS_FADE_IN,      /* FUN_1000_82d7(0x2b8), 16 steps of 2 VSYNC ticks */
     GS_PLAY,
     GS_FLASH_UP,     /* FUN_1000_83b5(0x2b8), the flush bomb going off */
@@ -130,6 +131,10 @@ typedef struct Game {
      * entity slots whose `kind` field holds a pattern number.  These are its
      * counters - twenty hits kill it, and the phase then runs the death. */
     int boss_hits, boss_phase, boss_timer, boss_blasts;
+
+    /* The title screen: which menu item is lit, the release latch the stick
+     * needs, and where the credit line has got to. */
+    int menu_sel, menu_trig, credit, credit_step;
     int died;             /* local_4e; set when the last life ran out this stage */
 
     /* The item, DS:0x1dc0 / 0x193e / 0x1d40 / 0x1db2 / 0x1db4 / 0x1d44.
@@ -171,6 +176,11 @@ void game_init(Game *g, Screen *scr, const PatBank *bank, const TextFont *font,
 /* Give the game a synth to talk to.  Call it before game_stage_start so the
  * first stage gets its music. */
 void game_sound(Game *g, Snd *snd);
+
+/* The title screen (src/title.c).  game_init starts here; picking "Game Start"
+ * calls game_stage_start. */
+void title_start(Game *g);
+void title_tick(Game *g);
 void game_stage_start(Game *g, int stage);
 void game_tick(Game *g);
 
