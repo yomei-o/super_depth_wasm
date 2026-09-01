@@ -517,8 +517,8 @@ static void boss3(Game *g)
         boss_dying(g, 9, 6, 0x60, 0x80, SD_SCORE[4][4]);
         return;
     }
-    if (g->ent[6].state < 10 && --g->ent[6].state == 0)
-        g->ent[6].state = 10;
+    if (g->ent[9].state < 10 && --g->ent[9].state == 0)
+        g->ent[9].state = 10;
 
     if (g->boss_phase == 0) {
         /* Coming in. */
@@ -574,7 +574,8 @@ static void boss3(Game *g)
 
         if (sd_rand(g) % period == 0 && b->x > 0 && b->x < 0x201)
             throw_shot(g, b->x + 0x10, b->y + 0x1c,
-                       (g->boss_timer == 0xa4) ? 0x1e : 0x3c, 0);
+                       /* (-(timer == 0xa4) & 0x1e) + 0x1e */
+                       (g->boss_timer == 0xa4) ? 0x3c : 0x1e, 0);
     }
 }
 
@@ -642,9 +643,11 @@ static void hit_boss(Game *g, Shot *s)
             b->y - 8 <= s->y && s->y <= b->y + 0x38) {
             if (b->y + 0xe <= s->y && s->y <= b->y + 0x22) {
                 sd_sfx(g, SFX_KILL);
-                g->ent[6].state = 9;
-                g->ent[6].x = s->x - 8;
-                g->ent[6].y = s->y - 8;
+                /* DS:0x1fbc / 0x1fdc / 0x1f9c - slot 9.  Slots 1..8 are the
+                 * body; the draw already looks for the spark from 9 up. */
+                g->ent[9].state = 9;
+                g->ent[9].x = s->x - 8;
+                g->ent[9].y = s->y - 8;
                 g->boss_hits++;
                 g->score += SD_SCORE[4][5];
                 sd_hud_score(g);
