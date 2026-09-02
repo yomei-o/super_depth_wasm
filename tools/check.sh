@@ -91,3 +91,8 @@ for s in 1 2 3 4; do
     printf 'stage %s: ' "$s"
     python tools/pngdiff.py "tmp/check/nat${s}0220.png" "tmp/check/wasm$s.png"
 done
+
+echo "== the music after a stage is cleared =="
+# The cut's jingle must give the chip back to the stage's own song (0x20f5),
+# not leave it silent.
+./tests/clearsong.exe

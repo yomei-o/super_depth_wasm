@@ -11,3 +11,6 @@ sh tools/cc.sh -O2 -Wall -Wextra -Isrc -o tests/frames.exe \
    tests/frames.c tests/png.c src/bfnt.c src/video.c src/text.c src/sound.c src/game.c src/stage_sea.c src/stage_sky.c src/stage_space.c src/stage_boss.c src/title.c src/record.c src/cut.c src/name.c src/ending.c
 sh tools/cc.sh -O2 -Wall -Wextra -Isrc -o tests/tune.exe    tests/tune.c src/sound.c
 echo "built tests/sheet.exe tests/frames.exe tests/tune.exe"
+sh tools/cc.sh -O2 -Wall -Wextra -Isrc -o tests/clearsong.exe \
+   tests/clearsong.c src/bfnt.c src/video.c src/text.c src/sound.c src/game.c src/stage_sea.c src/stage_sky.c src/stage_space.c src/stage_boss.c src/title.c src/record.c src/cut.c src/name.c src/ending.c
+echo "built tests/clearsong.exe"

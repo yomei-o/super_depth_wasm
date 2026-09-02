@@ -184,6 +184,14 @@ void sd_music(Game *g, int song, int loop)
     snd_play(g->snd, song);
 }
 
+/* FUN_1000_cf08, which is what the animations end on: it spins while the
+ * song is still going ([0x1854]) so the jingle is heard out before the stage
+ * takes the chip back. */
+int sd_music_busy(Game *g)
+{
+    return g->snd && g->snd->playing;
+}
+
 /* The front ends load the sound files after game_init, which has already run
  * title_start - and title_start's sd_music call was dropped for want of a
  * synth.  Play back whatever the last one asked for.
@@ -307,9 +315,14 @@ void game_stage_start(Game *g, int stage)
     g->fade_ticks = 0;
     if (!retry && g->type > 1) {
         /* The original runs the animation before the stage announces itself,
-         * so the banner this just put up comes down again until it ends. */
+         * so the banner this just put up comes down again until it ends.
+         *
+         * The stage's own song is NOT started here.  At 0x1fed the animation
+         * runs first, with its own jingle, and only at 0x20f5 - after it has
+         * returned - does the stage call cf6a(type + 2)/cf44/d046.  Starting
+         * it here meant the jingle overwrote it and nothing put it back, so
+         * clearing a stage went quiet.  cut_done starts it instead. */
         msg_clear(g);
-        sd_music(g, g->type + 2, 1);
         cut_start(g, g->type - 1);
         return;
     }

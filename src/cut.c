@@ -28,6 +28,11 @@
 #define CLIMB_STEP 0x10
 /* FUN_1000_9568: song 15 four times over. */
 #define ALARM_PLAYS 4
+/* The cut_kind that means "the picture is done, the jingle is not", and how
+ * many frames it may sit there: the longest of the three is SKY CLEAR, and at
+ * this tempo it is nowhere near ten seconds. */
+#define CUT_WAIT     0
+#define CUT_WAIT_MAX 600
 
 static Screen *g_vram;          /* only while a scrolling cut is running */
 
@@ -73,9 +78,18 @@ void cut_start(Game *g, int kind)
     }
 }
 
+/* 0x91f5: cf08 first, then a23c.  The picture is finished, so all that is
+ * left is to let the jingle end - the cut stays put until it has. */
 static void cut_done(Game *g)
 {
-    /* FUN_1000_a23c, and then the stage announces itself. */
+    g->cut_kind = CUT_WAIT;
+    g->cut_step = 0;
+}
+
+/* FUN_1000_a23c, and then 0x20f5: the stage announces itself and starts its
+ * own song, which is the one that was playing before the cut interrupted it. */
+static void cut_finish(Game *g)
+{
     txt_puts(&g->txt, 10, 8, 0xe1, "                                ");
     g->msg_timer = 0;
     sd_stage_banner(g);
@@ -83,6 +97,16 @@ static void cut_done(Game *g)
     g_vram = NULL;
     scr_palette(g->scr, g->pal);
     g->state = GS_PLAY;
+    sd_music(g, g->type + 2, 1);
+}
+
+/* One frame of that wait.  Bounded, so a jingle that never reports itself
+ * finished - no synth attached, say - cannot hold the game up. */
+static void wait_tick(Game *g)
+{
+    if (sd_music_busy(g) && ++g->cut_step < CUT_WAIT_MAX)
+        return;
+    cut_finish(g);
 }
 
 /* ------------------------------------------------- SEA -> SKY, the lift-off */
@@ -227,6 +251,7 @@ static void alarm_tick(Game *g)
 void cut_tick(Game *g)
 {
     switch (g->cut_kind) {
+    case CUT_WAIT: wait_tick(g); break;
     case 1: lift_tick(g); break;
     case 2: climb_tick(g); break;
     default: alarm_tick(g); break;

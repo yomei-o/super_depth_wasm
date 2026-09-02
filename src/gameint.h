@@ -67,6 +67,7 @@ int  sd_toward_middle(int x);        /* the direction from x to the middle */
 
 void sd_sfx(Game *g, int n);         /* FUN_1000_cff4 */
 void sd_music(Game *g, int song, int loop);
+int sd_music_busy(Game *g);
 void sd_kill_enemy(Game *g, int idx);/* FUN_1000_824a */
 void sd_hit_player(Game *g);
 void sd_item_roll(Game *g);          /* FUN_1000_9d84 */
