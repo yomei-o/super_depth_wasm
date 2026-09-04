@@ -56,4 +56,19 @@ void scr_pat_scale(Screen *s, int x, int y, int id, int scale);
 /* As scr_pat but index 0 is written too, for backgrounds. */
 void scr_pat_opaque(Screen *s, int x, int y, int id);
 
+/* The GRCG with one plane switched on, which is how the opening logo is drawn
+ * (FUN_1000_dbb2 sets mode 0xce for plane 0 and 0xcd for plane 1).  A colour
+ * index here is the four plane bits, so lighting a plane is an OR of its bit
+ * and rubbing one out an AND of the rest - which is what lets the opening
+ * clear its "Bio" every frame without touching the "100%" underneath.
+ *
+ * All three clip the way the original's fillers do: x to 0..639 and y to
+ * 0..199, the top half of the screen. */
+void scr_plane_rect(Screen *s, int x0, int x1, int y0, int y1, int bit);
+/* FUN_1000_def6: a block with horizontal top and bottom edges and straight
+ * sides, stepped down the two edges. */
+void scr_plane_trap(Screen *s, int y0, int xl0, int xr0,
+                    int y1, int xl1, int xr1, int bit);
+void scr_plane_clear(Screen *s, int y0, int y1, int bit);
+
 #endif

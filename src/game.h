@@ -101,6 +101,7 @@ typedef struct {
  * (FUN_1000_82d7 and friends), which call FUN_1000_9fbc to wait; a tick-driven
  * port has to make those states instead. */
 typedef enum {
+    GS_OPENING,      /* FUN_1000_dbb2, src/opening.c - the Bio_100% logo */
     GS_TITLE,        /* FUN_1000_8ae2, src/title.c */
     GS_RECORD,       /* FUN_1000_a816, src/record.c */
     GS_CUT,          /* between the stages, src/cut.c */
@@ -125,6 +126,10 @@ typedef struct Game {
 
     GameState state;
     int fade_step, fade_ticks;
+    /* The opening logo (src/opening.c): which part of it is running, and the
+     * counter that part is walking - the zoom's divisor, the fade's step, or
+     * the ticks left to hold. */
+    int open_phase, open_step, open_ticks;
 
     int stage;            /* DS:0x1818, 1..12 */
     int type;             /* DS:0x1816, ((stage - 1) % 4) + 1 */
@@ -215,8 +220,15 @@ void game_init(Game *g, Screen *scr, const PatBank *bank, const TextFont *font,
  * first stage gets its music. */
 void game_sound(Game *g, Snd *snd);
 
-/* The title screen (src/title.c).  game_init starts here; picking "Game Start"
- * calls game_stage_start. */
+/* The opening logo (src/opening.c).  game_init starts here and it hands over
+ * to the title when the jingle has had its 0x14 ticks. */
+enum { OPEN_ZOOM, OPEN_FADE, OPEN_HOLD };
+#define OPEN_TICKS 2            /* VSYNC ticks a frame while it runs */
+void opening_start(Game *g);
+void opening_tick(Game *g);
+
+/* The title screen (src/title.c).  The opening hands over to it; picking
+ * "Game Start" calls game_stage_start. */
 void title_start(Game *g);
 void title_tick(Game *g);
 

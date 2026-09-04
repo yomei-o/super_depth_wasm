@@ -142,3 +142,65 @@ void scr_pat_scale(Screen *s, int x, int y, int id, int scale)
         }
 }
 void scr_pat_opaque(Screen *s, int x, int y, int id) { blit(s, x, y, id, 1); }
+
+/* ---------------------------------------------------------- the GRCG planes */
+
+/* FUN_1000_de0c fills rows y0..y1 between columns x0..x1 with the bits the
+ * GRCG holds; here the plane is one bit of the colour index.  The original
+ * clips x into 0..0x27f and y into 0..199 and does nothing at all when the
+ * range comes out backwards. */
+#define PLANE_ROWS 200
+
+void scr_plane_rect(Screen *s, int x0, int x1, int y0, int y1, int bit)
+{
+    int x, y;
+
+    if (y0 >= PLANE_ROWS || y1 < y0)
+        return;
+    if (y0 < 0)
+        y0 = 0;
+    if (y1 >= PLANE_ROWS)
+        y1 = PLANE_ROWS - 1;
+    if (x0 >= SCR_W || x1 < x0)
+        return;
+    if (x0 < 0)
+        x0 = 0;
+    if (x1 >= SCR_W)
+        x1 = SCR_W - 1;
+    for (y = y0; y <= y1; y++)
+        for (x = x0; x <= x1; x++)
+            s->px[(long)y * SCR_W + x] |= (unsigned char)bit;
+}
+
+void scr_plane_clear(Screen *s, int y0, int y1, int bit)
+{
+    long i;
+
+    if (y0 < 0)
+        y0 = 0;
+    if (y1 >= PLANE_ROWS)
+        y1 = PLANE_ROWS - 1;
+    for (i = (long)y0 * SCR_W; i < (long)(y1 + 1) * SCR_W; i++)
+        s->px[i] &= (unsigned char)~bit;
+}
+
+void scr_plane_trap(Screen *s, int y0, int xl0, int xr0,
+                    int y1, int xl1, int xr1, int bit)
+{
+    int y, span, t;
+
+    if (y1 < y0) {              /* the original sorts the two edges by y */
+        t = y0; y0 = y1; y1 = t;
+        t = xl0; xl0 = xl1; xl1 = t;
+        t = xr0; xr0 = xr1; xr1 = t;
+    }
+    if (xr0 < xl0) { t = xl0; xl0 = xr0; xr0 = t; }
+    if (xr1 < xl1) { t = xl1; xl1 = xr1; xr1 = t; }
+    span = y1 - y0;
+    for (y = y0; y <= y1; y++) {
+        int l = span ? xl0 + (xl1 - xl0) * (y - y0) / span : xl0;
+        int r = span ? xr0 + (xr1 - xr0) * (y - y0) / span : xr0;
+
+        scr_plane_rect(s, l, r, y, y, bit);
+    }
+}

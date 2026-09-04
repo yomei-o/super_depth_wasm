@@ -50,8 +50,11 @@ int sd_toward_middle(int x) { return sd_sgn(0x140 - x); }
 
 int game_frame_ms(const Game *g)
 {
-    /* Types 3 and 4 wait for one VSYNC less than the others. */
-    int ticks = (g->type >= 3) ? g->wait - 1 : g->wait;
+    /* Types 3 and 4 wait for one VSYNC less than the others.  The opening
+     * logo is not a stage at all: FUN_1000_dbb2 counts VSYNC ticks itself,
+     * two to a frame, and never looks at DS:0x1820. */
+    int ticks = (g->state == GS_OPENING) ? OPEN_TICKS :
+                (g->type >= 3) ? g->wait - 1 : g->wait;
 
     if (ticks < 1)
         ticks = 1;
@@ -234,7 +237,8 @@ void game_init(Game *g, Screen *scr, const PatBank *bank, const TextFont *font,
      * give it something before anything can ask. */
     g->stage_ops = stage_for(1);
     scr_palette(scr, g->pal);
-    title_start(g);
+    /* 1000:011a - the Bio_100% logo comes before the title. */
+    opening_start(g);
 }
 
 /* FUN_1000_8098 - fill the entity slots from the stage's roster. */
@@ -710,6 +714,9 @@ void game_tick(Game *g)
     int i;
 
     switch (g->state) {
+    case GS_OPENING:
+        opening_tick(g);
+        return;
     case GS_TITLE:
         title_tick(g);
         return;

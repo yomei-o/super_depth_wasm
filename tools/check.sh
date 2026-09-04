@@ -28,8 +28,22 @@ sh tools/build.sh >/dev/null
 sh tools/build_wasm.sh >/dev/null
 echo "ok"
 
+echo "== the Bio_100% logo =="
+# FUN_1000_dbb2: "Bio" flies in over about two seconds, "100%" fades up under
+# it, and the title follows.  --trace says it handed over rather than sitting
+# there.
+./tests/frames.exe tmp/check/open 30,95 --quiet --trace > tmp/check/open.log
+cat tmp/check/open.log
+grep -q "t=1      opening" tmp/check/open.log || {
+    echo "the game did not start in the opening" >&2; exit 1; }
+./tests/frames.exe tmp/check/open2 150 --quiet --trace > tmp/check/open2.log
+grep -q "title" tmp/check/open2.log || {
+    echo "the opening never handed over to the title" >&2; exit 1; }
+echo "ok"
+
 echo "== every screen draws =="
-./tests/frames.exe tmp/check/title 12 --quiet
+# Past the opening, which takes about a hundred ticks.
+./tests/frames.exe tmp/check/title 112 --quiet
 ./tests/frames.exe tmp/check/record 12 --record --quiet
 for s in 1 2 3 4 5 6 7 8 9 10 11 12; do
     ./tests/frames.exe "tmp/check/s$s" 200 --stage "$s" --auto --god --quiet
@@ -74,7 +88,7 @@ echo "== sound =="
 "$NODE" tests/wasm_audio.js 120
 # The title has to be playing the theme (song 2), not whatever g->type happens
 # to say - it says 1 up there, because the title screen is a SEA scene.
-./tests/frames.exe tmp/check/title_snd 60 --wav tmp/check/title.wav --quiet
+./tests/frames.exe tmp/check/title_snd 160 --wav tmp/check/title.wav     --wav-from 105 --quiet
 ./tests/tune.exe song 2 3 tmp/check/song2.wav
 printf 'title music: '
 python tools/songcmp.py tmp/check/title.wav tmp/check/song2.wav

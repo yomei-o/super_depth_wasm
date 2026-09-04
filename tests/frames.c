@@ -9,7 +9,7 @@
  * --keys2 with --at swaps the held keys over part way through, which is the
  * only way to exercise anything that wants a key let go of - the pause, for
  * one.
- *                                    [--wav OUT.WAV]
+ *                                    [--wav OUT.WAV] [--wav-from TICK]
  *                                    [--stage N]
  *
  * --tap releases the fire buttons every other N frames, since the original
@@ -19,6 +19,8 @@
  * stage and so to exercise the items, the clear and the next stage.
  * --god stops the ship being hit, so a long run gets there without playing
  * well.  It is a harness flag only; nothing in the game sets it.
+ * --wav-from starts that recording later, which is how the title's music is
+ * checked now that the Bio_100% logo plays its own jingle first.
  * --wav records what the beeper does over the same run, which is the only way
  * to check the music and the effects without a sound card.
  */
@@ -144,6 +146,7 @@ int main(int argc, char **argv)
     SndData snddata;
     Snd snd;
     const char *wav = NULL;
+    int wav_from = 0;           /* the first tick that goes into the WAV */
     short *pcm = NULL;
     long pcmn = 0, pcmcap = 0;
     unsigned char pal[256][3];
@@ -191,6 +194,8 @@ int main(int argc, char **argv)
             trace = 1;
         else if (!strcmp(argv[i], "--wav") && i + 1 < argc)
             wav = argv[++i];
+        else if (!strcmp(argv[i], "--wav-from") && i + 1 < argc)
+            wav_from = atoi(argv[++i]);
         else if (!strcmp(argv[i], "--stage") && i + 1 < argc)
             start_stage = atoi(argv[++i]);
     }
@@ -251,7 +256,7 @@ int main(int argc, char **argv)
     }
 
     for (t = 1; t <= maxtick; t++) {
-        if (wav) {
+        if (wav && t >= wav_from) {
             /* One frame's worth of sound, at the rate the stage runs at. */
             long n = (long)game_frame_ms(&game) * SND_RATE / 1000;
 
@@ -271,8 +276,9 @@ int main(int argc, char **argv)
         if (trace && ((int)game.state != last_state ||
                       (game.state == GS_END && game.end_phase != last_phase))) {
             static const char *const NAME[] = {
-                "title", "record", "cut", "name", "fade-in", "play",
-                "flash-up", "flash-down", "fade-out", "over", "end", "pause"
+                "opening", "title", "record", "cut", "name", "fade-in",
+                "play", "flash-up", "flash-down", "fade-out", "over", "end",
+                "pause"
             };
 
             last_state = (int)game.state;
